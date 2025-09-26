@@ -5,6 +5,7 @@
   import { base } from "$app/paths";
 
 
+
 </script>
 
 <main class="page-bg flex flex-col items-center">
@@ -53,9 +54,10 @@
   </section>
 
   <!-- Prima mappa -->
+<div class="chart-container">
   <section class="flex items-center justify-center mt-0">
     <MappaAffollamento />
-  </section>
+  </section> </div>
 
   <!-- Seconda mappa commento -->
   <section class="flex items-center justify-center mt-0 font-oswald">
@@ -67,9 +69,10 @@ Successivamente alla raccolta dei dati relativi a ogni singolo carcere, è stata
   </section>
 
   <!-- Seconda mappa -->
+	<div class="chart-container">
   <section class="flex items-center justify-center">
     <MappaRegioni />
-  </section>
+  </section> </div>
 
   <!-- Storico commento -->
   <section class="flex items-center justify-center mt-0 font-oswald">
@@ -81,9 +84,10 @@ La raccolta dei dati è iniziata il <b> 15 giugno 2025 </b>, quindi le informazi
   </section>
 
   <!-- Storico -->
+<div class="chart-container">
   <section class="flex items-center justify-center">
 <Storico />
-  </section>
+  </section> </div>
 
   <!-- Tabella commento -->
   <section class="flex items-center justify-center mt-0 font-oswald">
@@ -95,7 +99,7 @@ La tabella, dotata della possibilità di ricercare, mostra tutte le carceri ital
   </section>
 
   <!-- Tabella -->
-  <section class="flex items-center justify-center my-10">
+  <section class="">
 <div style="min-height:553px" id="datawrapper-vis-nd1Uw"><script type="text/javascript" defer src="https://datawrapper.dwcdn.net/nd1Uw/embed.js" charset="utf-8" data-target="#datawrapper-vis-nd1Uw"></script><noscript><img src="https://datawrapper.dwcdn.net/nd1Uw/full.png" alt="Table" /></noscript></div>
   </section>
 
@@ -110,7 +114,7 @@ Un altro grave problema legato alle carceri italiane è la <b> carenza di person
   </section>
 
   <!-- Polizia -->
-  <section class="flex items-center justify-center my-10">
+  <section class="">
 <div style="min-height:423px" id="datawrapper-vis-wWADv"><script type="text/javascript" defer src="https://datawrapper.dwcdn.net/wWADv/embed.js" charset="utf-8" data-target="#datawrapper-vis-wWADv"></script><noscript><img src="https://datawrapper.dwcdn.net/wWADv/full.png" alt="Scatter Plot" /></noscript></div>
   </section>
 

@@ -8,13 +8,11 @@
   let height = 700;
   let regions = [];
 
-  // stato tooltip
   let hovered = null;
   let tipX = 0;
   let tipY = 0;
   let wrapper;
 
-  // proiezione
   let projection = geoMercator()
     .center([12.5, 42.5])
     .scale(2500)
@@ -22,37 +20,29 @@
 
   let pathGenerator = geoPath().projection(projection);
 
-// colori
-function getRegionColor(value) {
-  if (!value) return "#ddd";
+  function getRegionColor(value) {
+    if (!value) return "#ddd";
 
-  if (value <= 100) {
-    // 0–100: verde scuro → verde chiaro
-    const ratio = value / 100;
-    const dark = [0, 100, 0];     // verde scuro
-    const light = [144, 238, 144]; // verde chiaro
-    const r = Math.round(dark[0] + (light[0] - dark[0]) * ratio);
-    const g = Math.round(dark[1] + (light[1] - dark[1]) * ratio);
-    const b = Math.round(dark[2] + (light[2] - dark[2]) * ratio);
-    return `rgb(${r},${g},${b})`;
-  } else {
-    // 100–200: arancione chiaro → rosso scuro
-    const capped = Math.min(value, 200);
-    const ratio = (capped - 100) / 50;
-
-    const orange = [255, 165, 0];   // arancione chiaro (#FFA500)
-    const redDark = [139, 0, 0];    // rosso scuro (#8B0000)
-
-    const r = Math.round(orange[0] + (redDark[0] - orange[0]) * ratio);
-    const g = Math.round(orange[1] + (redDark[1] - orange[1]) * ratio);
-    const b = Math.round(orange[2] + (redDark[2] - orange[2]) * ratio);
-
-    return `rgb(${r},${g},${b})`;
+    if (value <= 100) {
+      const ratio = value / 100;
+      const dark = [0, 100, 0];
+      const light = [144, 238, 144];
+      const r = Math.round(dark[0] + (light[0] - dark[0]) * ratio);
+      const g = Math.round(dark[1] + (light[1] - dark[1]) * ratio);
+      const b = Math.round(dark[2] + (light[2] - dark[2]) * ratio);
+      return `rgb(${r},${g},${b})`;
+    } else {
+      const capped = Math.min(value, 200);
+      const ratio = (capped - 100) / 50;
+      const orange = [255, 165, 0];
+      const redDark = [139, 0, 0];
+      const r = Math.round(orange[0] + (redDark[0] - orange[0]) * ratio);
+      const g = Math.round(orange[1] + (redDark[1] - orange[1]) * ratio);
+      const b = Math.round(orange[2] + (redDark[2] - orange[2]) * ratio);
+      return `rgb(${r},${g},${b})`;
+    }
   }
-}
 
-
-  // aggiorna posizione tooltip relativa al contenitore
   function placeTooltip(e, r) {
     const rect = wrapper.getBoundingClientRect();
     hovered = r;
@@ -88,8 +78,13 @@ function getRegionColor(value) {
   });
 </script>
 
-<div class="relative" bind:this={wrapper}>
-  <svg {width} {height} class="mx-auto block">
+<div class="relative chart-container" bind:this={wrapper}>
+  <svg
+    viewBox="0 0 {width} {height}"
+    preserveAspectRatio="xMidYMid meet"
+    class="mx-auto block"
+  >
+    <!-- Regioni -->
     {#each regions as r}
       <path
         d={r.d}
@@ -100,6 +95,31 @@ function getRegionColor(value) {
         on:mouseleave={() => (hovered = null)}
       />
     {/each}
+
+    <!-- ✅ Legenda integrata -->
+    <g transform="translate({width - 60}, 80)">
+      <rect
+        x="-40"
+        y="0"
+        width="12"
+        height="150"
+        rx="2"
+        ry="2"
+        style="fill: url(#legend-gradient);"
+      />
+      <text x="-20" y="10" font-size="10" fill="#333">200%</text>
+      <text x="-20" y="80" font-size="10" fill="#333">100%</text>
+      <text x="-20" y="150" font-size="10" fill="#333">0%</text>
+
+      <defs>
+        <linearGradient id="legend-gradient" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0%" stop-color="#006400" />
+          <stop offset="50%" stop-color="#90EE90" />
+          <stop offset="75%" stop-color="#FFA500" />
+          <stop offset="100%" stop-color="#8B0000" />
+        </linearGradient>
+      </defs>
+    </g>
   </svg>
 
   {#if hovered}
@@ -113,28 +133,5 @@ function getRegionColor(value) {
       <div>{hovered.value || "n.d."}%</div>
     </div>
   {/if}
-
-
-
-<!-- ✅ Legenda verticale -->
-  <div class="absolute top-40 right-40 flex flex-row items-start">
-    <div
-      class="w-4 h-40 rounded"
-      style="
-        background: linear-gradient(
-          to top,
-          #006400  0%,   /* verde scuro */
-          #90EE90 50%,  /* verde chiaro */
-          #FFA500 80%,  /* arancione */
-          #8B0000 100%  /* rosso scuro */
-        );
-      "
-    ></div>
-    <div class="flex flex-col justify-between h-40 text-xs text-gray-700 ml-2">
-      <span>200%</span>
-      <span>100%</span>
-      <span>0%</span>
-    </div>
-  </div>
 </div>
 

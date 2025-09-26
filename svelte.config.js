@@ -4,8 +4,8 @@ const config = {
   kit: {
     adapter: adapter(),
     paths: {
-      base: '/progetto-carceri'
-    }
+  base: process.env.NODE_ENV === "production" ? "/progetto-carceri" : ""
+}
   }
 };
 

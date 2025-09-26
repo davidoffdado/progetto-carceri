@@ -1,3 +1,25 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+.page-bg {
+  min-height: 100vh;
+  background: radial-gradient(
+      circle,
+      #f3f4f6 90%,   /* grigio chiaro al centro */
+      black 100%     /* nero ai bordi */
+    );
+}
+
+a {
+  @apply underline decoration-2 decoration-black text-black transition-colors duration-300;
+}
+
+a:hover {
+  @apply bg-black text-white;
+}
+
+p {
+  @apply text-black;
+}

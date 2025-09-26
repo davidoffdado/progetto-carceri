@@ -5,11 +5,21 @@
   import * as d3 from "d3";
   import { fly } from "svelte/transition";
 
+  let wrapper;
+
+  function placeTooltip(e, i) {
+    const rect = wrapper.getBoundingClientRect();
+    hovered = i;
+    tooltipX = e.clientX - rect.left;
+    tooltipY = e.clientY - rect.top;
+  }
+
   let width = 800;
-  let height = 1000;
+  let height = 700;
   let paths = [];
   let istituti = [];
   let radiusScale;
+  let maxValue = 0;
 
   // tooltip
   let hovered = null;
@@ -75,6 +85,8 @@
           };
         });
 
+	maxValue = d3.max(istituti, d => d.totale) || 0;
+
       radiusScale = d3.scaleSqrt()
         .domain([0, d3.max(istituti, d => d.totale)])
         .range([4, 20]);
@@ -84,14 +96,14 @@
   });
 </script>
 
-<div class="relative">
+<div class="relative" bind:this={wrapper}>
   <svg {width} {height} class="mx-auto block">
     <!-- Confini Italia -->
     {#each paths as p}
-      <path d={p.d} fill="#f9f9f9" stroke="#333" stroke-width="1" />
+      <path d={p.d} fill="#f9f9f9" stroke="#333" stroke-width="0.5" />
     {/each}
 
-    <!-- Punti istituti con effetto caduta -->
+    <!-- Istituti -->
     {#each istituti as i, idx}
       {#if projection && !isNaN(i.lat) && !isNaN(i.lng)}
         <circle
@@ -101,19 +113,66 @@
           fill={getColor(i.affollamento)}
           fill-opacity="0.6"
           in:fly={{ y: -200, duration: 800, delay: idx * 40 }}
-          on:mouseenter={(e) => {
-            hovered = i;
-            tooltipX = e.pageX;
-            tooltipY = e.pageY;
-          }}
-          on:mousemove={(e) => {
-            tooltipX = e.pageX;
-            tooltipY = e.pageY;
-          }}
+          on:mouseenter={(e) => placeTooltip(e, i)}
+          on:mousemove={(e) => placeTooltip(e, i)}
           on:mouseleave={() => (hovered = null)}
         />
       {/if}
     {/each}
+
+    <!-- ✅ Legenda -->
+    <g transform="translate({width - 60}, 20)">
+      <!-- Barra verticale -->
+      <rect
+        x="-150"
+        y="80"
+        width="12"
+        height="150"
+        rx="2"
+        ry="2"
+        style="fill: url(#legend-gradient);"
+      />
+      <!-- Etichette -->
+      <text x="-130" y="80" font-size="10" fill="#333">200%</text>
+      <text x="-130" y="120" font-size="10" fill="#333">150%</text>
+      <text x="-130" y="160" font-size="10" fill="#333">100%</text>
+      <text x="-130" y="200" font-size="10" fill="#333">50%</text>
+      <text x="-130" y="240" font-size="10" fill="#333">0%</text>
+
+      <!-- Definizione gradiente -->
+      <defs>
+        <linearGradient id="legend-gradient" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0%" stop-color="#006400" />   <!-- verde scuro -->
+          <stop offset="50%" stop-color="#90EE90" />  <!-- verde chiaro -->
+          <stop offset="75%" stop-color="#FFA500" />  <!-- arancione -->
+          <stop offset="100%" stop-color="#8B0000" /> <!-- rosso scuro -->
+        </linearGradient>
+      </defs>
+    </g>
+
+<!-- ✅ Legenda dimensioni -->
+<g transform="translate(150, {height - 20})">
+  <text x="-30" y="-50" font-size="12" fill="#333">Totale detenuti</text>
+
+  {#each d3.ticks(0, maxValue, 3) as v, idx}
+    {#if v > 0}
+      <g transform="translate(0, {-radiusScale(v)})">
+        <circle
+          cx="0"
+          cy="0"
+          r={radiusScale(v)}
+          fill="none"
+          stroke="#555"
+        />
+        <text x="30" y={-radiusScale(v)+20} font-size="10" fill="#333">
+          {v}
+        </text>
+      </g>
+    {/if}
+  {/each}
+</g>
+
+
   </svg>
 
   <!-- Tooltip -->
@@ -127,6 +186,4 @@
     </div>
   {/if}
 </div>
-
-
 

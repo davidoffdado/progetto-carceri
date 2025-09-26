@@ -99,7 +99,7 @@ La tabella, dotata della possibilità di ricercare, mostra tutte le carceri ital
   </section>
 
   <!-- Tabella -->
-  <section class="">
+  <section class="mx-12 my-10">
 <div style="min-height:553px" id="datawrapper-vis-nd1Uw"><script type="text/javascript" defer src="https://datawrapper.dwcdn.net/nd1Uw/embed.js" charset="utf-8" data-target="#datawrapper-vis-nd1Uw"></script><noscript><img src="https://datawrapper.dwcdn.net/nd1Uw/full.png" alt="Table" /></noscript></div>
   </section>
 
@@ -114,7 +114,7 @@ Un altro grave problema legato alle carceri italiane è la <b> carenza di person
   </section>
 
   <!-- Polizia -->
-  <section class="">
+  <section class="mx-12 my-10">
 <div style="min-height:423px" id="datawrapper-vis-wWADv"><script type="text/javascript" defer src="https://datawrapper.dwcdn.net/wWADv/embed.js" charset="utf-8" data-target="#datawrapper-vis-wWADv"></script><noscript><img src="https://datawrapper.dwcdn.net/wWADv/full.png" alt="Scatter Plot" /></noscript></div>
   </section>
 
@@ -129,7 +129,7 @@ Nella tabella, è possibile osservare tutti gli istituti penitenziari italiani s
   </section>
 
   <!-- Lista agente -->
-  <section class="flex items-center justify-center my-10">
+  <section class="mx-12 my-10">
 <div style="min-height:435px" id="datawrapper-vis-iCXb2"><script type="text/javascript" defer src="https://datawrapper.dwcdn.net/iCXb2/embed.js" charset="utf-8" data-target="#datawrapper-vis-iCXb2"></script><noscript><img src="https://datawrapper.dwcdn.net/iCXb2/full.png" alt="Table" /></noscript></div>
   </section>
 
@@ -143,7 +143,7 @@ La causa principale di morte nei penitenziari italiani resta il suicidio.
   </section>
 
   <!-- Morti -->
-  <section class="flex items-center justify-center my-10">
+  <section class="mx-12 my-10">
 <div style="min-height:305px" id="datawrapper-vis-jJ6Cd"><script type="text/javascript" defer src="https://datawrapper.dwcdn.net/jJ6Cd/embed.js" charset="utf-8" data-target="#datawrapper-vis-jJ6Cd"></script><noscript><img src="https://datawrapper.dwcdn.net/jJ6Cd/full.png" alt="Le morti nelle carceri italiane, dal 2002 a oggi (Bar Chart)" /></noscript></div>
   </section>
 
@@ -157,7 +157,7 @@ Il 2024 ha segnato il numero più elevato di suicidi negli istituti penitenziari
   </section>
 
   <!-- Suicidi -->
-  <section class="flex items-center justify-center my-10">
+  <section class="mx-12 my-10">
 <div style="min-height:412px" id="datawrapper-vis-Yrawu"><script type="text/javascript" defer src="https://datawrapper.dwcdn.net/Yrawu/embed.js" charset="utf-8" data-target="#datawrapper-vis-Yrawu"></script><noscript><img src="https://datawrapper.dwcdn.net/Yrawu/full.png" alt="Le morti per suicidio nelle carceri italiane (Column Chart)" /></noscript></div>
   </section>
 
@@ -165,12 +165,12 @@ Il 2024 ha segnato il numero più elevato di suicidi negli istituti penitenziari
        <!-- DOWNLOAD DEI DATI -->
       <section class="flex items-center justify-center  my-10 font-oswald">
 	    <div class="max-w-2xl text-left">
-	<p class="text-lg md:text-4xl leading-relaxed semi-bold my-5"> Download dei dati
+	<p class="text-lg md:text-4xl leading-relaxed semi-bold my-5 text-center md:text-left"> Download dei dati
 </p>
       <p>
       I dati sono scaricabili da ogni singola dashboard, ma di seguito sono stati comunque inseriti i link per il download:
       </p>
-      <ul>
+      <ul class="list-disc list-inside text-left flex flex-col gap-2 my-4 mx-4">
       <li> <a href="https://docs.google.com/spreadsheets/d/1wH9i9hc_B7Q91KklHFc8FHFdGrZ82SsDB1gHhNPaumg/export?format=csv&amp;gid=1943472560" download> Dati sugli istituti penitenziari </a> </li>
       <li> <a href="https://docs.google.com/spreadsheets/d/1wH9i9hc_B7Q91KklHFc8FHFdGrZ82SsDB1gHhNPaumg/export?format=csv&amp;gid=1408753092" download> Dati sul sovraffollamento carcerario a livello regionale </a> </li>
       <li> <a href="https://docs.google.com/spreadsheets/d/1wH9i9hc_B7Q91KklHFc8FHFdGrZ82SsDB1gHhNPaumg/export?format=csv&amp;gid=681593217" download> Dati sugli agenti di polizia penitenziaria nelle carceri </a> </li>
@@ -182,7 +182,7 @@ Il 2024 ha segnato il numero più elevato di suicidi negli istituti penitenziari
       <!-- CONTATTI SOCIAL -->
       <section class="flex items-center justify-center  my-10 font-oswald">
 	    <div class="max-w-2xl text-left">
-	<p class="text-lg md:text-4xl leading-relaxed semi-bold my-5"> Contatti
+	<p class="text-lg md:text-4xl leading-relaxed semi-bold my-5 text-center md:text-left"> Contatti
 </p>
 	    <div class="flex space-x-6 text-gray-700">
 
@@ -197,7 +197,7 @@ Il 2024 ha segnato il numero più elevato di suicidi negli istituti penitenziari
   <!-- Conclusione -->
   <section class="min-h-screen flex items-center justify-center">
     <div class="max-w-2xl text-left">
-      <h2 class="text-4xl font-bold mb-4">Appendice tecnica</h2>
+      <h2 class="text-4xl font-bold mb-4 text-center md:text-left">Appendice tecnica</h2>
       <p class="text-lg leading-relaxed">
         <i>
           Tecnicamente, il progetto sfrutta due script in R: uno raccoglie i

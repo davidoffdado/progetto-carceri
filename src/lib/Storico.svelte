@@ -12,7 +12,17 @@
   let x, y;
   let xAxisGroup, yAxisGroup;
 
+  let hovered = null;
+  let tooltipX = 0;
+  let tooltipY = 0;
+
+  let isMobile = false;
+
   onMount(async () => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    isMobile = mq.matches;
+    mq.addEventListener("change", e => (isMobile = e.matches));
+
     const sheetUrl =
       "https://docs.google.com/spreadsheets/d/1REAvN1QFv3IzkbHbI7AICLAhDICeh9Vvd4f_Xk-6vOs/gviz/tq?tqx=out:csv&sheet=Storico";
     const raw = await csv(sheetUrl);
@@ -47,15 +57,19 @@
     d3.select(yAxisGroup).call(yAxis);
   });
 
-  let hovered = null;
-  let tipX = 0;
-  let tipY = 0;
-
   function showTooltip(e, d) {
-    const rect = e.target.ownerSVGElement.getBoundingClientRect();
     hovered = d;
-    tipX = e.clientX - rect.left + 10;
-    tipY = e.clientY - rect.top - 20;
+
+    if (isMobile) {
+      // tooltip fisso in alto
+      tooltipX = 50;
+      tooltipY = 30;
+    } else {
+      // segue il mouse
+      const rect = e.target.ownerSVGElement.getBoundingClientRect();
+      tooltipX = e.clientX - rect.left + 10;
+      tooltipY = e.clientY - rect.top - 20;
+    }
   }
 </script>
 
@@ -111,21 +125,34 @@
         cy={y(d.value)}
         r="2"
         fill="black"
-        on:mouseenter={(e) => showTooltip(e, d)}
-        on:mousemove={(e) => showTooltip(e, d)}
-        on:mouseleave={() => (hovered = null)}
+        on:mouseenter={(e) => !isMobile && showTooltip(e, d)}
+        on:mousemove={(e) => !isMobile && showTooltip(e, d)}
+        on:mouseleave={() => !isMobile && (hovered = null)}
+        on:click={(e) => isMobile && showTooltip(e, d)}
+        on:touchstart={(e) => isMobile && showTooltip(e, d)}
       />
     {/each}
   </svg>
 
+  <!-- Tooltip -->
   {#if hovered}
-    <div
-      class="absolute bg-white border border-gray-400 px-2 py-1 text-sm rounded shadow pointer-events-none"
-      style="left:{tipX}px; top:{tipY}px"
-    >
-      <strong>{d3.timeFormat("%d/%m/%Y")(hovered.date)}</strong><br />
-      {hovered.value}%
-    </div>
+    {#if isMobile}
+      <div
+        class="absolute bg-white/80 border border-gray-400 px-2 py-1 text-xs rounded shadow pointer-events-none"
+        style="left:{tooltipX}px; top:{tooltipY}px"
+      >
+        <strong>{d3.timeFormat("%d/%m/%Y")(hovered.date)}</strong><br />
+        {hovered.value.toFixed(2)}%
+      </div>
+    {:else}
+      <div
+        class="absolute bg-white border border-gray-400 px-3 py-2 text-sm rounded shadow pointer-events-none"
+        style="left:{tooltipX}px; top:{tooltipY}px"
+      >
+        <strong>{d3.timeFormat("%d/%m/%Y")(hovered.date)}</strong><br />
+        {hovered.value.toFixed(2)}%
+      </div>
+    {/if}
   {/if}
 </div>
 

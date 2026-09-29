@@ -8,6 +8,11 @@
 
 </script>
 
+<svelte:head>
+  <title>Lo stato delle carceri italiane</title>
+  <meta name="description" content="Uno scraper per l'aggiornamento quotidiano sullo stato delle carceri italiane" />
+</svelte:head>
+
 <main class="page-bg flex flex-col items-center">
   <!-- Titolo -->
   <section class="w-full py-16 text-center mb-0">
@@ -84,10 +89,9 @@ La raccolta dei dati è iniziata il <b> 15 giugno 2025 </b>, quindi le informazi
   </section>
 
   <!-- Storico -->
-<div class="chart-container">
-  <section class="flex items-center justify-center">
-<Storico />
-  </section> </div>
+  <section class=" my-10">
+<div style="min-height:373px" id="datawrapper-vis-71MG8"><script type="text/javascript" defer src="https://datawrapper.dwcdn.net/71MG8/embed.js" charset="utf-8" data-target="#datawrapper-vis-71MG8"></script><noscript><img src="https://datawrapper.dwcdn.net/71MG8/full.png" alt="Line chart" /></noscript></div>
+  </section>
 
   <!-- Tabella commento -->
   <section class="flex items-center justify-center mt-0 font-oswald">

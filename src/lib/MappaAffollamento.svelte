@@ -7,12 +7,28 @@
 
   let wrapper;
 
-  function placeTooltip(e, i) {
-    const rect = wrapper.getBoundingClientRect();
-    hovered = i;
-    tooltipX = e.clientX - rect.left;
-    tooltipY = e.clientY - rect.top;
+  let isMobile = false;
+
+onMount(() => {
+  const mq = window.matchMedia("(max-width: 768px)");
+  isMobile = mq.matches;
+  mq.addEventListener("change", e => isMobile = e.matches);
+});
+
+function placeTooltip(e, i) {
+  hovered = i;
+
+  if (isMobile) {
+    tooltipX = 0;
+    tooltipY = 100; // fisso in alto a sinistra
+  } else {
+    const svgRect = e.target.ownerSVGElement.getBoundingClientRect();
+    tooltipX = e.clientX - svgRect.left + 10;
+    tooltipY = e.clientY - svgRect.top - 20;
   }
+}
+
+
 
   let width = 800;
   let height = 700;
@@ -69,16 +85,18 @@
           const lat = parseFloat(d["Latitudine"].replace(",", "."));
           const lng = parseFloat(d["Longitudine"].replace(",", "."));
           const aff = parseFloat(
-            d["Tasso_affollamento"].toString().replace("%", "").replace(",", ".")
+            d["Tasso_sovraffollamento"].toString().replace("%", "").replace(",", ".")
           );
           const tot = +d["Totale_detenuti"];
+	  const data = d["Data_aggiornamento"];
 
           return {
             nome: d["Nome_istituto"],
             lat,
             lng,
             affollamento: aff,
-            totale: tot
+            totale: tot,
+	    lastUpdate: data
           };
         });
 
@@ -114,9 +132,11 @@
           fill={getColor(i.affollamento)}
           fill-opacity="0.6"
           in:fly={{ y: -200, duration: 800, delay: idx * 40 }}
-          on:mouseenter={(e) => placeTooltip(e, i)}
-          on:mousemove={(e) => placeTooltip(e, i)}
-          on:mouseleave={() => (hovered = null)}
+  on:mouseenter={(e) => !isMobile && placeTooltip(e, i)}
+  on:mousemove={(e) => !isMobile && placeTooltip(e, i)}
+  on:mouseleave={() => !isMobile && (hovered = null)}
+  on:click={(e) => isMobile && placeTooltip(e, i)}
+  on:touchstart={(e) => isMobile && placeTooltip(e, i)}
         />
       {/if}
     {/each}
@@ -165,14 +185,29 @@
   </svg>
 
   <!-- Tooltip -->
-  {#if hovered}
+{#if hovered}
+  {#if isMobile}
     <div
-      class="absolute bg-white border border-gray-400 px-2 py-1 text-sm rounded shadow pointer-events-none"
+      class="absolute bg-white/80 border border-gray-400 px-2 py-1 text-xs rounded shadow pointer-events-none"
+      style="left:{tooltipX}px; top:{tooltipY}px"
+    >
+      <strong>{hovered.nome}</strong><br />
+      Tasso di affollamento: {hovered.affollamento?.toFixed(2)}% <br />
+      Numero totale di detenuti: {hovered.totale} <br /> <hr>
+      <em> Ultimo aggiornamento: {hovered.lastUpdate} </em>
+    </div>
+  {:else}
+    <div
+      class="absolute bg-white border border-gray-400 px-3 py-2 text-sm rounded shadow pointer-events-none"
       style="left:{tooltipX + 10}px; top:{tooltipY + 10}px"
     >
       <strong>{hovered.nome}</strong><br />
-      {hovered.affollamento}% — {hovered.totale} detenuti
+      Tasso di affollamento: {hovered.affollamento?.toFixed(2)}% <br />
+      Numero totale di detenuti: {hovered.totale} <br /> <hr>
+      <em> Ultimo aggiornamento: {hovered.lastUpdate} </em>
     </div>
   {/if}
+{/if}
+
 </div>
 

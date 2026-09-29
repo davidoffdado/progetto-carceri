@@ -7,11 +7,19 @@
   let width = 800;
   let height = 700;
   let regions = [];
+  let wrapper;
 
   let hovered = null;
-  let tipX = 0;
-  let tipY = 0;
-  let wrapper;
+  let tooltipX = 0;
+  let tooltipY = 0;
+
+  let isMobile = false;
+
+  onMount(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    isMobile = mq.matches;
+    mq.addEventListener("change", e => (isMobile = e.matches));
+  });
 
   let projection = geoMercator()
     .center([12.5, 42.5])
@@ -44,10 +52,16 @@
   }
 
   function placeTooltip(e, r) {
-    const rect = wrapper.getBoundingClientRect();
     hovered = r;
-    tipX = e.clientX - rect.left + 5;
-    tipY = e.clientY - rect.top + 5;
+
+    if (isMobile) {
+      tooltipX = 10;
+      tooltipY = 100; // fisso in alto
+    } else {
+      const svgRect = e.target.ownerSVGElement.getBoundingClientRect();
+      tooltipX = e.clientX - svgRect.left + 10;
+      tooltipY = e.clientY - svgRect.top - 20;
+    }
   }
 
   onMount(async () => {
@@ -61,7 +75,7 @@
 
       const tassi = {};
       data.forEach(d => {
-        const raw = d["Tasso_affollamento_medio"];
+        const raw = d["Tasso_sovraffollamento_medio"];
         if (raw) {
           tassi[d.Regione] = parseFloat(raw.replace(",", "."));
         }
@@ -91,8 +105,10 @@
         fill={getRegionColor(r.value)}
         stroke="#333"
         stroke-width="0.5"
-        on:mousemove={(e) => placeTooltip(e, r)}
-        on:mouseleave={() => (hovered = null)}
+        on:mousemove={(e) => !isMobile && placeTooltip(e, r)}
+        on:mouseleave={() => !isMobile && (hovered = null)}
+        on:click={(e) => isMobile && placeTooltip(e, r)}
+        on:touchstart={(e) => isMobile && placeTooltip(e, r)}
       />
     {/each}
 
@@ -122,16 +138,29 @@
     </g>
   </svg>
 
+  <!-- Tooltip -->
   {#if hovered}
-    <div
-      in:fade={{ duration: 150 }}
-      out:fade={{ duration: 150 }}
-      class="absolute z-50 bg-white border border-gray-400 px-2 py-1 text-sm rounded shadow pointer-events-none"
-      style="left:{tipX}px; top:{tipY}px"
-    >
-      <div class="font-bold">{hovered.name}</div>
-      <div>{hovered.value || "n.d."}%</div>
-    </div>
+    {#if isMobile}
+      <div
+        in:fade={{ duration: 150 }}
+        out:fade={{ duration: 150 }}
+        class="absolute bg-white/80 border border-gray-400 px-2 py-1 text-xs rounded shadow pointer-events-none"
+        style="left:{tooltipX}px; top:{tooltipY}px"
+      >
+        <div class="font-bold">{hovered.name}</div>
+        <div>Tasso di affollamento: {hovered.value ? hovered.value.toFixed(2) : "n.d."}%</div>
+      </div>
+    {:else}
+      <div
+        in:fade={{ duration: 150 }}
+        out:fade={{ duration: 150 }}
+        class="absolute bg-white border border-gray-400 px-3 py-2 text-sm rounded shadow pointer-events-none"
+        style="left:{tooltipX}px; top:{tooltipY}px"
+      >
+        <div class="font-bold">{hovered.name}</div>
+        <div>Tasso di affollamento: {hovered.value ? hovered.value.toFixed(2) : "n.d."}%</div>
+      </div>
+    {/if}
   {/if}
 </div>
 

@@ -1,10 +1,11 @@
 <script>
   import { base } from "$app/paths";
-  import { caricaIstituti, caricaRegioni, caricaStorico, caricaStoricoIstituto, DOWNLOAD } from "$lib/dati.js";
+  import { caricaIstituti, caricaRegioni, caricaStorico, caricaStoricoIstituto, caricaMortiIstituto, DOWNLOAD } from "$lib/dati.js";
   import { fmt, coloreIstituto } from "$lib/colori.js";
   import { dataLunga } from "$lib/formati.js";
   import GraficoIstituto from "$lib/GraficoIstituto.svelte";
   import Cerca from "$lib/Cerca.svelte";
+  import MortiIstituto from "$lib/MortiIstituto.svelte";
 
   let { data } = $props();
 
@@ -13,6 +14,9 @@
   let nazionale = $state([]);
   let serie = $state([]);
   let errore = $state(false);
+  let morti = $state([]);
+  let mortiCaricate = $state(false);
+  let erroreMorti = $state(false);
 
   // si ricarica quando si passa da un istituto all'altro con la ricerca
   $effect(() => {
@@ -29,6 +33,17 @@
         errore = true;
       });
     caricaStoricoIstituto(id).then((s) => (serie = s)).catch(console.error);
+    morti = [];
+    mortiCaricate = false;
+    caricaMortiIstituto(id)
+      .then((m) => {
+        morti = m;
+        mortiCaricate = true;
+      })
+      .catch((e) => {
+        console.error(e);
+        erroreMorti = true;
+      });
   });
 
   let ist = $derived(istituti.find((d) => d.slug === data.slug));
@@ -45,6 +60,11 @@
 <svelte:head>
   <title>Carcere di {data.nome}: sovraffollamento e dati aggiornati</title>
   <meta name="description" content="Detenuti, posti disponibili, tasso di affollamento e personale del carcere di {data.nome} ({data.regione}), aggiornati ogni giorno con i dati del Ministero della Giustizia." />
+  <link rel="canonical" href="https://www.davidruffini.com/stato-delle-carceri/istituto/{data.slug}/" />
+  <meta property="og:url" content="https://www.davidruffini.com/stato-delle-carceri/istituto/{data.slug}/" />
+  <meta property="og:title" content="Carcere di {data.nome}: sovraffollamento e dati aggiornati" />
+  <meta property="og:description" content="Detenuti, posti, tasso di affollamento, personale e morti nel carcere di {data.nome}, aggiornati ogni giorno." />
+  <meta name="twitter:title" content="Carcere di {data.nome}: sovraffollamento e dati aggiornati" />
 </svelte:head>
 
 <header class="testata">
@@ -108,6 +128,13 @@
   <div class="largo">
     <GraficoIstituto {serie} {nazionale} nome={data.nome} />
   </div>
+
+  <!-- se la scheda MortiIstituti non e' disponibile la sezione non compare -->
+  {#if !erroreMorti}
+    <div class="largo">
+      <MortiIstituto {morti} nome={data.nome} caricato={mortiCaricate} />
+    </div>
+  {/if}
 
   <div class="largo">
     <Cerca {istituti} />

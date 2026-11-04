@@ -264,6 +264,11 @@ td:first-child { white-space: normal; min-width: 11rem; }
 .tratto { display: inline-block; width: 22px; height: 0; border-top: 2.5px solid #111; vertical-align: middle; margin-right: 0.4rem; }
 .tratto.tratteggio { border-top: 2px dashed #8a8984; }
 
+.quadratino { display: inline-block; width: 11px; height: 11px; vertical-align: middle; margin-right: 0.4rem; }
+.stampa { list-style: none; padding-left: 0 !important; }
+.stampa li { margin: 0 0 0.7rem; }
+.testata-stampa { display: block; font-size: 0.8rem; color: var(--muted); }
+
 /* tooltip della mappa bloccato dal clic: cliccabile */
 .tip.fisso { pointer-events: auto; }
 .tip-link { display: inline-block; margin-top: 0.4rem; font-weight: 500; }

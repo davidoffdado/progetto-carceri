@@ -107,6 +107,27 @@ export const caricaStoricoIstituto = (id) =>
       .sort((a, b) => a.data - b.data)
   );
 
+// morti per istituto (scheda "MortiIstituti", abbinamento prudente dei nomi di Ristretti Orizzonti)
+export const caricaMortiIstituto = (id) =>
+  una("mortiIstituti", async () => {
+    let righe;
+    try {
+      righe = await leggi(gviz(SHEET_ISTITUTI, "MortiIstituti"));
+      // se la scheda non esiste Google restituisce la prima del file: controllo le colonne
+      if (!righe.length || !("ID_istituto" in righe[0]) || !("causa" in righe[0])) throw new Error("scheda MortiIstituti non ancora creata");
+    } catch (e) {
+      if (!import.meta.env.DEV) throw e;
+      const { default: csv } = await import("./anteprima/morti-istituti.csv?raw");
+      righe = csvParse(csv);
+    }
+    return righe;
+  }).then((righe) =>
+    righe
+      .filter((d) => +d.ID_istituto === +id)
+      .map((d) => ({ anno: +d.anno, causa: d.causa, n: +d.morti }))
+      .filter((d) => d.anno >= 2002 && d.n > 0)
+  );
+
 // morti in carcere (Ristretti Orizzonti): totali per anno e causa, scritti ogni giorno da morti-carcere.R
 // nella scheda "Morti" del foglio pubblico (il foglio con i nomi resta privato)
 export const caricaMorti = () =>

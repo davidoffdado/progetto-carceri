@@ -17,6 +17,8 @@
   let istituti = $state([]);
   let morti = $state([]);
   let erroreMorti = $state(false);
+  let postiRegolamentari = $derived(sum(istituti, (d) => d.posti || 0));
+  let postiNonDisponibili = $derived(sum(istituti, (d) => d.nonDisponibili || 0));
   let aggiornamento = $derived(istituti.map((d) => d.aggiornamento).filter(Boolean).sort().at(-1));
 
   onMount(() => {
@@ -33,6 +35,15 @@
   let record = $derived(
     greatest(rollups(morti.filter((d) => d.causa === "Suicidio"), (v) => sum(v, (d) => d.n), (d) => d.anno), (d) => d[1])
   );
+
+  // articoli e segnalazioni basati su questi dati
+  const STAMPA = [
+    { testata: "Il Sole 24 Ore", titolo: "Carceri italiane, il sovraffollamento cresce ancora: dal 134% al 139% in otto mesi", url: "https://www.infodata.ilsole24ore.com/2026/03/18/carceri-italiane-il-sovraffollamento-cresce-ancora-dal-134-al-139-in-otto-mesi-il-nostro-monitoraggio/" },
+    { testata: "Il Sole 24 Ore", titolo: "Lo stato della polizia penitenziaria", url: "https://www.infodata.ilsole24ore.com/2025/07/08/il-carcere-di-brissogne-e-uno-dei-pochi-istituti-italiani-a-non-versare-in-una-situazione-di-sovraffollamento/" },
+    { testata: "Il Sole 24 Ore", titolo: "Di carcere si muore, da entrambe le parti delle sbarre", url: "https://www.infodata.ilsole24ore.com/2025/07/01/di-carcere-si-muore-da-entrambe-le-parti-delle-sbarre/" },
+    { testata: "Il Sole 24 Ore", titolo: "Il tasso di sovraffollamento medio delle carceri italiane sfiora il 135%", url: "https://www.infodata.ilsole24ore.com/2025/06/23/carceri-il-tasso-di-sovraffollamento-medio-delle-carceri-italiane-sfiora-il-135/" },
+    { testata: "GIJN", titolo: "Tra i dieci migliori lavori di data journalism della settimana", url: "https://gijn.org/stories/europes-deadly-heatwave-middle-east-ceasefires/" },
+  ];
 
   const dataIt = (s) => (s ? s.split("-").reverse().join("/") : "");
 
@@ -58,6 +69,11 @@
 <svelte:head>
   <title>Lo stato delle carceri italiane</title>
   <meta name="description" content="Uno scraper per l'aggiornamento quotidiano sullo stato delle carceri italiane" />
+  <link rel="canonical" href="https://www.davidruffini.com/stato-delle-carceri/" />
+  <meta property="og:url" content="https://www.davidruffini.com/stato-delle-carceri/" />
+  <meta property="og:title" content="Lo stato delle carceri italiane, giorno per giorno" />
+  <meta property="og:description" content="Sovraffollamento, personale e morti in carcere: i dati dei 190 istituti penitenziari italiani, aggiornati ogni giorno." />
+  <meta name="twitter:title" content="Lo stato delle carceri italiane, giorno per giorno" />
 </svelte:head>
 
 <header class="testata">
@@ -107,6 +123,26 @@
   </div>
 
   <div class="largo"><Storico /></div>
+
+  <section class="testo">
+    <h2>Come si interpreta il tasso di affollamento carcerario?</h2>
+    <p>
+      La capienza regolamentare di ciascun istituto penitenziario è calcolata secondo il decreto emesso il 5 luglio 1975 dal Ministero della Sanità, adottato dalla circolare del Dipartimento dell'Amministrazione Penitenziaria del 17 novembre 1988, in base al quale ciascuna cella singola non può essere inferiore ai 9 metri quadrati e, in presenza di celle multiple, sono necessari altri 5 metri quadrati per ciascun detenuto. Un dettaglio da sottolineare è che il decreto del Ministero della Sanità riguardava il settore abitativo nel suo complesso e riteneva che le <b>stanze da letto</b> non dovessero avere misure minori di 9 metri quadrati, non nominando affatto la situazione di un detenuto costretto a vivere quasi tutto il giorno nella sua cella.
+    </p>
+    {#if istituti.length}
+      <p>
+        Una volta a conoscenza della capienza regolamentare, stabilita per legge e oggi pari a {fmt(postiRegolamentari)} posti, è necessario sottrarre i posti non disponibili a causa di lavori di ristrutturazione o per inagibilità, che oggi sono {fmt(postiNonDisponibili)}. Calcolando la differenza tra {fmt(postiRegolamentari)} e {fmt(postiNonDisponibili)} posti, si ottiene il denominatore del tasso di affollamento, calcolato come rapporto tra il totale dei detenuti e il numero effettivamente disponibile di posti. La metodologia da applicare per ogni singolo istituto penitenziario è la stessa; infatti, sarà sufficiente considerare il totale dei detenuti di quel carcere e i suoi posti effettivamente disponibili.
+      </p>
+    {/if}
+    <p>
+      Il rapporto tra le due quantità fornirà un valore limitato inferiormente dallo 0 (nessun detenuto presente) e, teoricamente, limitato superiormente solamente in base alla grandezza del numero di detenuti totali. Nella pratica, il tasso di affollamento oscilla tra 0 e 2,5, per poi venire espresso in formato percentuale.
+    </p>
+    <ul>
+      <li>Un tasso di affollamento pari a 100% significa che il totale dei detenuti eguaglia il numero di posti disponibili: non c'è alcun sovraffollamento.</li>
+      <li>Un tasso di affollamento pari a 200% significa che il totale dei detenuti è il doppio del numero di posti disponibili: se una cella prevede 3 persone, ce ne saranno 6.</li>
+      <li>Un tasso di affollamento pari a 133% significa che il totale dei detenuti è 1,33 volte il numero di posti disponibili: se una cella prevede 3 persone, ce ne saranno 4.</li>
+    </ul>
+  </section>
 
   <div class="testo">
     <p>
@@ -161,6 +197,15 @@
   <div class="largo"><Suicidi {morti} errore={erroreMorti} /></div>
 
   <section class="testo">
+    <h2>Ne hanno parlato</h2>
+    <ul class="stampa">
+      {#each STAMPA as a}
+        <li><span class="testata-stampa">{a.testata}</span> <a href={a.url} target="_blank" rel="noopener">{a.titolo}</a></li>
+      {/each}
+    </ul>
+  </section>
+
+  <section class="testo">
     <h2>Download dei dati</h2>
     <p>Tutti i dati usati in questa pagina sono pubblici e si possono scaricare in formato CSV:</p>
     <ul>
@@ -170,6 +215,12 @@
       <li><a href={DOWNLOAD.storicoIstituti} download>Dati sul sovraffollamento di ogni istituto nel tempo</a></li>
       <li><a href={DOWNLOAD.morti} download>Dati sulle morti in carcere per anno e causa</a></li>
     </ul>
+    <p>
+      I dati raccolti ed elaborati in questo progetto sono rilasciati con licenza
+      <a href="https://creativecommons.org/licenses/by/4.0/deed.it" target="_blank" rel="noopener">Creative Commons Attribuzione 4.0 (CC BY 4.0)</a>:
+      puoi usarli, modificarli e ripubblicarli liberamente, anche per scopi commerciali, citando la fonte, ad esempio così:
+      <i>«Fonte: David Ruffini, Lo stato delle carceri italiane, su dati Ministero della Giustizia e Ristretti Orizzonti»</i>, con un link a questa pagina.
+    </p>
   </section>
 
   <section class="testo">

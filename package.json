@@ -10,8 +10,8 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",
-  		"predeploy": "npm run build && node scripts/add-nojekyll.cjs",
-  		"deploy": "gh-pages -d build --dotfiles"
+		"pubblica": "node scripts/pubblica.mjs",
+		"deploy:redirect": "gh-pages -d scripts/redirect-github --dotfiles"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^6.0.0",

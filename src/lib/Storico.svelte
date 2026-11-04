@@ -1,158 +1,99 @@
 <script>
   import { onMount } from "svelte";
-  import { csv } from "d3-fetch";
-  import * as d3 from "d3";
+  import { scaleTime, scaleLinear } from "d3-scale";
+  import { line, curveMonotoneX } from "d3-shape";
+  import { extent, bisector, min, max } from "d3-array";
+  import { timeMonth } from "d3-time";
+  import { caricaStorico } from "./dati.js";
+  import { dataLunga, mese, meseAnno } from "./formati.js";
+  import { fmt } from "./colori.js";
 
-  export let width = 800;
-  export let height = 400;
-  let margin = { top: 40, right: 40, bottom: 60, left: 70 };
+  // periodi in cui il Ministero non ha aggiornato i dati: almeno una settimana con lo stesso identico valore
+  // (le serie di 3-5 giorni sono weekend e ponti e non vengono segnate)
+  const MIN_GIORNI = 7;
+  function trovaBuchi(serie) {
+    const buchi = [];
+    let i = 0;
+    while (i < serie.length) {
+      let j = i;
+      while (j + 1 < serie.length && serie[j + 1].tasso.toFixed(6) === serie[i].tasso.toFixed(6)) j++;
+      if (j - i + 1 >= MIN_GIORNI) buchi.push([serie[i].data, serie[j].data]);
+      i = j + 1;
+    }
+    return buchi;
+  }
 
-  let data = [];
-  let pathD = "";
-  let x, y;
-  let xAxisGroup, yAxisGroup;
-
-  let hovered = null;
-  let tooltipX = 0;
-  let tooltipY = 0;
-
-  let isMobile = false;
+  let dati = $state([]);
+  let errore = $state(false);
+  let width = $state(700);
+  let hovered = $state(null);
+  const height = 360;
+  const m = { top: 20, right: 16, bottom: 34, left: 48 };
 
   onMount(async () => {
-    const mq = window.matchMedia("(max-width: 768px)");
-    isMobile = mq.matches;
-    mq.addEventListener("change", e => (isMobile = e.matches));
-
-    const sheetUrl =
-      "https://docs.google.com/spreadsheets/d/1REAvN1QFv3IzkbHbI7AICLAhDICeh9Vvd4f_Xk-6vOs/gviz/tq?tqx=out:csv&sheet=Storico";
-    const raw = await csv(sheetUrl);
-
-    data = raw.map(d => ({
-      date: d3.timeParse("%Y-%m-%d")(d.data) || d3.timeParse("%d/%m/%Y")(d.data),
-      value: parseFloat(d.tasso_sovraffollamento_nazionale.replace(",", "."))
-    }));
-
-    data = data.filter(d => d.date && !isNaN(d.value));
-    data.sort((a, b) => a.date - b.date);
-
-    x = d3.scaleTime()
-      .domain(d3.extent(data, d => d.date))
-      .range([margin.left, width - margin.right]);
-
-    y = d3.scaleLinear()
-      .domain([130, 140])   // dominio fisso
-      .range([height - margin.bottom, margin.top]);
-
-    const line = d3.line()
-      .x(d => x(d.date))
-      .y(d => y(d.value))
-      .curve(d3.curveMonotoneX);
-
-    pathD = line(data);
-
-    const xAxis = d3.axisBottom(x).ticks(width / 140).tickFormat(d3.timeFormat("%m-%y"));
-    const yAxis = d3.axisLeft(y).ticks(5).tickFormat(d => d + "%");
-
-    d3.select(xAxisGroup).call(xAxis);
-    d3.select(yAxisGroup).call(yAxis);
+    try {
+      dati = await caricaStorico();
+    } catch (e) {
+      console.error(e);
+      errore = true;
+    }
   });
 
-  function showTooltip(e, d) {
-    hovered = d;
+  let x = $derived(scaleTime().domain(dati.length ? extent(dati, (d) => d.data) : [new Date(), new Date()]).range([m.left, width - m.right]));
+  let y = $derived(
+    scaleLinear()
+      .domain([Math.floor(min(dati, (d) => d.tasso) ?? 130) - 1, Math.ceil(max(dati, (d) => d.tasso) ?? 140) + 1])
+      .nice()
+      .range([height - m.bottom, m.top])
+  );
+  let d = $derived(line().x((p) => x(p.data)).y((p) => y(p.tasso)).curve(curveMonotoneX)(dati) ?? "");
+  let mesi = $derived(dati.length ? timeMonth.range(...x.domain()).filter((_, i, a) => a.length < 9 || width > 600 || i % 2 === 0) : []);
+  let ultimo = $derived(dati.at(-1));
+  let buchi = $derived(trovaBuchi(dati));
 
-    if (isMobile) {
-      // tooltip fisso in alto
-      tooltipX = 50;
-      tooltipY = 30;
-    } else {
-      // segue il mouse
-      const rect = e.target.ownerSVGElement.getBoundingClientRect();
-      tooltipX = e.clientX - rect.left + 10;
-      tooltipY = e.clientY - rect.top - 20;
-    }
+  const bis = bisector((p) => p.data).center;
+  function muovi(e) {
+    const r = e.currentTarget.getBoundingClientRect();
+    const px = ((e.clientX - r.left) / r.width) * width;
+    hovered = dati[bis(dati, x.invert(px))];
   }
 </script>
 
-<div class="relative chart-container">
-  <svg
-    viewBox="0 0 {width} {height}"
-    preserveAspectRatio="xMidYMid meet"
-    class="mx-auto block"
-  >
-    <!-- Asse X -->
-    <g bind:this={xAxisGroup} transform={`translate(0,${height - margin.bottom})`} />
-    <text
-      x={width / 2}
-      y={height - 15}
-      text-anchor="middle"
-      class="text-sm fill-gray-700"
-    >
-      Anno
-    </text>
+<figure class="grafico" bind:clientWidth={width}>
+  <figcaption>
+    <h3>Il sovraffollamento carcerario in Italia</h3>
+    {#if ultimo}
+      <p class="sottotitolo">Tasso di affollamento nazionale, giorno per giorno. Ultimo dato: <strong>{fmt(ultimo.tasso, 2)}%</strong> il {dataLunga(ultimo.data)}.</p>
+    {/if}
+  </figcaption>
 
-    <!-- Asse Y -->
-    <g bind:this={yAxisGroup} transform={`translate(${margin.left},0)`} />
-    <text
-      transform="rotate(-90)"
-      x={-(height / 2)}
-      y="20"
-      text-anchor="middle"
-      class="text-sm fill-gray-700"
-    >
-      Tasso di sovraffollamento (%)
-    </text>
-
-    <!-- Linea -->
-    <path
-      d={pathD}
-      fill="none"
-      stroke="black"
-      stroke-width="2"
-    >
-      <animate
-        attributeName="stroke-dasharray"
-        from="0,{pathD.length}"
-        to="{pathD.length},{pathD.length}"
-        dur="3s"
-        fill="freeze"
-      />
-    </path>
-
-    <!-- Punti -->
-    {#each data as d}
-      <circle
-        cx={x(d.date)}
-        cy={y(d.value)}
-        r="2"
-        fill="black"
-        on:mouseenter={(e) => !isMobile && showTooltip(e, d)}
-        on:mousemove={(e) => !isMobile && showTooltip(e, d)}
-        on:mouseleave={() => !isMobile && (hovered = null)}
-        on:click={(e) => isMobile && showTooltip(e, d)}
-        on:touchstart={(e) => isMobile && showTooltip(e, d)}
-      />
-    {/each}
+  <svg viewBox="0 0 {width} {height}" role="img" aria-label="Andamento del tasso di affollamento carcerario nazionale" onpointermove={muovi} onpointerleave={() => (hovered = null)}>
+    {#if dati.length}
+      {#each buchi as [da, a]}
+        <rect x={x(da)} y={m.top} width={x(a) - x(da)} height={height - m.top - m.bottom} fill="#888" opacity="0.15" />
+      {/each}
+      {#each y.ticks(5) as v}
+        <line x1={m.left} x2={width - m.right} y1={y(v)} y2={y(v)} class="griglia" />
+        <text x={m.left - 6} y={y(v) + 4} text-anchor="end" class="asse">{v}%</text>
+      {/each}
+      {#each mesi as t}
+        <text x={x(t)} y={height - m.bottom + 18} text-anchor="middle" class="asse">{t.getMonth() === 0 ? meseAnno(t) : mese(t)}</text>
+      {/each}
+      <path {d} fill="none" stroke="#111" stroke-width="2" />
+      {#if hovered}
+        <line x1={x(hovered.data)} x2={x(hovered.data)} y1={m.top} y2={height - m.bottom} stroke="#111" stroke-width="1" stroke-dasharray="2 3" />
+        <circle cx={x(hovered.data)} cy={y(hovered.tasso)} r="4.5" fill="#111" stroke="#fff" stroke-width="2" />
+      {/if}
+    {/if}
   </svg>
 
-  <!-- Tooltip -->
   {#if hovered}
-    {#if isMobile}
-      <div
-        class="absolute bg-white/80 border border-gray-400 px-2 py-1 text-xs rounded shadow pointer-events-none"
-        style="left:{tooltipX}px; top:{tooltipY}px"
-      >
-        <strong>{d3.timeFormat("%d/%m/%Y")(hovered.date)}</strong><br />
-        {hovered.value.toFixed(2)}%
-      </div>
-    {:else}
-      <div
-        class="absolute bg-white border border-gray-400 px-3 py-2 text-sm rounded shadow pointer-events-none"
-        style="left:{tooltipX}px; top:{tooltipY}px"
-      >
-        <strong>{d3.timeFormat("%d/%m/%Y")(hovered.date)}</strong><br />
-        {hovered.value.toFixed(2)}%
-      </div>
-    {/if}
+    <div class="tip" style="left:{Math.min(x(hovered.data) + 12, width - 170)}px; top:{y(hovered.tasso) - 50}px">
+      <strong>{dataLunga(hovered.data)}</strong>
+      <div>{fmt(hovered.tasso, 2)}%</div>
+    </div>
   {/if}
-</div>
 
+  <p class="nota">I periodi evidenziati in grigio rappresentano i giorni in cui il Ministero della Giustizia non ha aggiornato i dati (almeno una settimana con lo stesso valore). Fonte: Ministero della Giustizia.</p>
+  {#if errore}<p class="errore">Non è stato possibile caricare i dati.</p>{/if}
+</figure>

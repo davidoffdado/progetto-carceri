@@ -1,213 +1,132 @@
 <script>
   import { onMount } from "svelte";
   import { geoMercator, geoPath } from "d3-geo";
-  import { csv } from "d3-fetch";
-  import * as d3 from "d3";
-  import { fly } from "svelte/transition";
+  import { scaleSqrt } from "d3-scale";
+  import { max, ticks } from "d3-array";
+  import { base } from "$app/paths";
+  import { caricaIstituti } from "./dati.js";
+  import { coloreIstituto, fmt } from "./colori.js";
+  import { creaZoom } from "./zoom.js";
 
-  let wrapper;
+  const width = 800;
+  const height = 700;
+  const projection = geoMercator().center([12.5, 42.5]).scale(2500).translate([width / 2, height / 2]);
+  const path = geoPath().projection(projection);
 
-  let isMobile = false;
+  let paths = $state([]);
+  let istituti = $state([]);
+  let errore = $state(false);
+  let k = $state(1);
+  let t = $state("translate(0,0) scale(1)");
+  let hovered = $state(null);
+  let tip = $state({ x: 0, y: 0 });
+  let svg, wrap, comandi;
 
-onMount(() => {
-  const mq = window.matchMedia("(max-width: 768px)");
-  isMobile = mq.matches;
-  mq.addEventListener("change", e => isMobile = e.matches);
-});
-
-function placeTooltip(e, i) {
-  hovered = i;
-
-  if (isMobile) {
-    tooltipX = 0;
-    tooltipY = 100; // fisso in alto a sinistra
-  } else {
-    const svgRect = e.target.ownerSVGElement.getBoundingClientRect();
-    tooltipX = e.clientX - svgRect.left + 10;
-    tooltipY = e.clientY - svgRect.top - 20;
-  }
-}
-
-
-
-  let width = 800;
-  let height = 700;
-  let paths = [];
-  let istituti = [];
-  let radiusScale;
-  let maxValue = 0;
-
-  let hovered = null;
-  let tooltipX = 0;
-  let tooltipY = 0;
-
-  function getColor(value) {
-    if (value <= 100) {
-      const ratio = value / 100;
-      const dark = [0, 100, 0];
-      const light = [144, 238, 144];
-      const r = Math.round(dark[0] + (light[0] - dark[0]) * ratio);
-      const g = Math.round(dark[1] + (light[1] - dark[1]) * ratio);
-      const b = Math.round(dark[2] + (light[2] - dark[2]) * ratio);
-      return `rgb(${r},${g},${b})`;
-    } else {
-      const capped = Math.min(value, 200);
-      const ratio = (capped - 100) / 100;
-      const yellow = [255, 255, 0];
-      const red = [139, 0, 0];
-      const r = Math.round(yellow[0] + (red[0] - yellow[0]) * ratio);
-      const g = Math.round(yellow[1] + (red[1] - yellow[1]) * ratio);
-      const b = Math.round(yellow[2] + (red[2] - yellow[2]) * ratio);
-      return `rgb(${r},${g},${b})`;
-    }
-  }
-
-  let projection = geoMercator()
-    .center([12.5, 42.5])
-    .scale(2500)
-    .translate([width / 2, height / 2]);
-
-  let pathGenerator = geoPath().projection(projection);
+  let raggio = $derived(scaleSqrt().domain([0, max(istituti, (d) => d.detenuti) || 1]).range([4, 20]));
+  let legendaDimensioni = $derived(ticks(0, max(istituti, (d) => d.detenuti) || 0, 3).filter((v) => v > 0));
 
   onMount(async () => {
+    comandi = creaZoom(svg, width, height, (tr) => {
+      k = tr.k;
+      t = tr.toString();
+    });
     try {
-      const response = await fetch("italia.json");
-      const geojson = await response.json();
-      paths = geojson.features.map(f => ({ d: pathGenerator(f) }));
-
-      const sheetUrl =
-        "https://docs.google.com/spreadsheets/d/1wH9i9hc_B7Q91KklHFc8FHFdGrZ82SsDB1gHhNPaumg/gviz/tq?tqx=out:csv&sheet=Dati";
-      const data = await csv(sheetUrl);
-
-      istituti = data
-        .filter(d => d.Latitudine && d.Longitudine)
-        .map(d => {
-          const lat = parseFloat(d["Latitudine"].replace(",", "."));
-          const lng = parseFloat(d["Longitudine"].replace(",", "."));
-          const aff = parseFloat(
-            d["Tasso_sovraffollamento"].toString().replace("%", "").replace(",", ".")
-          );
-          const tot = +d["Totale_detenuti"];
-	  const data = d["Data_aggiornamento"];
-
-          return {
-            nome: d["Nome_istituto"],
-            lat,
-            lng,
-            affollamento: aff,
-            totale: tot,
-	    lastUpdate: data
-          };
-        });
-
-      maxValue = d3.max(istituti, d => d.totale) || 0;
-
-      radiusScale = d3.scaleSqrt()
-        .domain([0, d3.max(istituti, d => d.totale)])
-        .range([4, 20]);
-    } catch (err) {
-      console.error("Errore nel caricamento dati:", err);
+      const geo = await (await fetch(`${base}/italia.json`)).json();
+      paths = geo.features.map((f) => path(f));
+      istituti = (await caricaIstituti())
+        .filter((d) => !isNaN(d.lat) && !isNaN(d.lng))
+        .map((d) => ({ ...d, xy: projection([d.lng, d.lat]) }))
+        .sort((a, b) => b.detenuti - a.detenuti); // i cerchi piccoli sopra quelli grandi
+    } catch (e) {
+      console.error(e);
+      errore = true;
     }
   });
+
+  function mostra(e, d) {
+    const r = wrap.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    tip = { x: Math.min(x + 12, r.width - 250), y: e.clientY - r.top + 12 };
+    hovered = d;
+  }
 </script>
 
-<div class="relative chart-container" bind:this={wrapper}>
-  <svg
-    viewBox="0 0 {width} {height}"
-    preserveAspectRatio="xMidYMid meet"
-    class="mx-auto block"
-  >
-    <!-- Confini Italia -->
-    {#each paths as p}
-      <path d={p.d} fill="#f9f9f9" stroke="#333" stroke-width="0.5" />
-    {/each}
+<figure class="grafico" bind:this={wrap}>
+  <div class="zoom-comandi">
+    <button onclick={() => comandi.piu()} aria-label="Ingrandisci">+</button>
+    <button onclick={() => comandi.meno()} aria-label="Riduci">−</button>
+    <button onclick={() => comandi.reset()} disabled={k === 1} aria-label="Torna alla vista intera">⟲</button>
+  </div>
 
-    <!-- Istituti -->
-    {#each istituti as i, idx}
-      {#if projection && !isNaN(i.lat) && !isNaN(i.lng)}
+  <svg class="mappa" bind:this={svg} viewBox="0 0 {width} {height}" role="img" aria-label="Mappa degli istituti penitenziari italiani per tasso di affollamento e numero di detenuti" onclick={(e) => !e.target.classList.contains("punto") && (hovered = null)}>
+    <g transform={t}>
+      {#each paths as d}
+        <path {d} fill="#f9f9f9" stroke="#333" stroke-width={0.5 / k} />
+      {/each}
+      {#each istituti as d (d.nome)}
         <circle
-          cx={projection([i.lng, i.lat])[0]}
-          cy={projection([i.lng, i.lat])[1]}
-          r={radiusScale ? radiusScale(i.totale) : 6}
-          fill={getColor(i.affollamento)}
+          class="punto"
+          cx={d.xy[0]}
+          cy={d.xy[1]}
+          r={raggio(d.detenuti) / Math.sqrt(k)}
+          fill={coloreIstituto(d.tasso)}
           fill-opacity="0.6"
-          in:fly={{ y: -200, duration: 800, delay: idx * 40 }}
-  on:mouseenter={(e) => !isMobile && placeTooltip(e, i)}
-  on:mousemove={(e) => !isMobile && placeTooltip(e, i)}
-  on:mouseleave={() => !isMobile && (hovered = null)}
-  on:click={(e) => isMobile && placeTooltip(e, i)}
-  on:touchstart={(e) => isMobile && placeTooltip(e, i)}
+          stroke={hovered === d ? "#111" : "none"}
+          stroke-width={1.5 / k}
+          onpointerenter={(e) => mostra(e, d)}
+          onpointermove={(e) => mostra(e, d)}
+          onpointerleave={(e) => e.pointerType === "mouse" && (hovered = null)}
+          onclick={(e) => mostra(e, d)}
         />
-      {/if}
-    {/each}
+      {/each}
+    </g>
 
-    <!-- ✅ Legenda colori -->
-    <g transform="translate({width - 60}, 20)">
-      <rect
-        x="-150"
-        y="80"
-        width="12"
-        height="150"
-        rx="2"
-        ry="2"
-        style="fill: url(#legend-gradient);"
-      />
-      <text x="-130" y="80" font-size="10" fill="#333">200%</text>
-      <text x="-130" y="120" font-size="10" fill="#333">150%</text>
-      <text x="-130" y="160" font-size="10" fill="#333">100%</text>
-      <text x="-130" y="200" font-size="10" fill="#333">50%</text>
-      <text x="-130" y="240" font-size="10" fill="#333">0%</text>
-
+    <!-- legenda colori (fissa, non zooma; su telefono la sostituisce quella sotto la mappa) -->
+    <g class="leg-svg" transform="translate({width - 60}, 20)">
       <defs>
-        <linearGradient id="legend-gradient" x1="0" x2="0" y1="1" y2="0">
+        <linearGradient id="grad-istituti" x1="0" x2="0" y1="1" y2="0">
+          <!-- stessa scala dei cerchi: verde fino al 100%, poi dal giallo al rosso scuro -->
           <stop offset="0%" stop-color="#006400" />
           <stop offset="50%" stop-color="#90EE90" />
-          <stop offset="75%" stop-color="#FFA500" />
+          <stop offset="50%" stop-color="#FFFF00" />
           <stop offset="100%" stop-color="#8B0000" />
         </linearGradient>
       </defs>
-    </g>
-
-    <!-- ✅ Legenda dimensioni -->
-    <g transform="translate(150, {height - 20})">
-      <text x="-30" y="-50" font-size="12" fill="#333">Totale detenuti</text>
-      {#each d3.ticks(0, maxValue, 3) as v, idx}
-        {#if v > 0}
-          <g transform="translate(0, {-radiusScale(v)})">
-            <circle cx="0" cy="0" r={radiusScale(v)} fill="none" stroke="#555" />
-            <text x="30" y={-radiusScale(v)+20} font-size="10" fill="#333">
-              {v}
-            </text>
-          </g>
-        {/if}
+      <text x="-150" y="66" class="leg-titolo">Tasso di affollamento</text>
+      <rect x="-150" y="80" width="12" height="150" fill="url(#grad-istituti)" />
+      {#each [200, 150, 100, 50, 0] as v, i}
+        <text x="-132" y={84 + i * 37.5} class="leg">{v}%</text>
       {/each}
     </g>
+
+    <!-- legenda dimensioni -->
+    {#if istituti.length}
+      <g class="leg-svg" transform="translate(150, {height - 20})">
+        <text x="-30" y="-50" class="leg-titolo">Totale detenuti</text>
+        {#each legendaDimensioni as v}
+          <circle cx="0" cy={-raggio(v)} r={raggio(v)} fill="none" stroke="#555" />
+          <text x="26" y={-2 * raggio(v) + 4} class="leg">{fmt(v)}</text>
+        {/each}
+      </g>
+    {/if}
   </svg>
 
-  <!-- Tooltip -->
-{#if hovered}
-  {#if isMobile}
-    <div
-      class="absolute bg-white/80 border border-gray-400 px-2 py-1 text-xs rounded shadow pointer-events-none"
-      style="left:{tooltipX}px; top:{tooltipY}px"
-    >
-      <strong>{hovered.nome}</strong><br />
-      Tasso di affollamento: {hovered.affollamento?.toFixed(2)}% <br />
-      Numero totale di detenuti: {hovered.totale} <br /> <hr>
-      <em> Ultimo aggiornamento: {hovered.lastUpdate} </em>
-    </div>
-  {:else}
-    <div
-      class="absolute bg-white border border-gray-400 px-3 py-2 text-sm rounded shadow pointer-events-none"
-      style="left:{tooltipX + 10}px; top:{tooltipY + 10}px"
-    >
-      <strong>{hovered.nome}</strong><br />
-      Tasso di affollamento: {hovered.affollamento?.toFixed(2)}% <br />
-      Numero totale di detenuti: {hovered.totale} <br /> <hr>
-      <em> Ultimo aggiornamento: {hovered.lastUpdate} </em>
+  <div class="leg-html">
+    <span>Tasso di affollamento</span>
+    <span class="leg-barra" style="background:linear-gradient(to right,#006400 0%,#90EE90 50%,#FFFF00 50%,#8B0000 100%)"></span>
+    <span class="leg-scala"><span>0%</span><span>100%</span><span>200%</span></span>
+    <span class="leg-nota">La grandezza del cerchio indica il numero di detenuti.</span>
+  </div>
+  <p class="suggerimento">Passa sopra un cerchio (o toccalo) per i dettagli. Per ingrandire usa i pulsanti, Ctrl + rotella o due dita; trascina per spostarti.</p>
+  {#if errore}<p class="errore">Non è stato possibile caricare i dati.</p>{/if}
+
+  {#if hovered}
+    <div class="tip" style="left:{tip.x}px; top:{tip.y}px">
+      <strong>{hovered.nome}</strong>
+      <div>Tasso di affollamento: {isNaN(hovered.tasso) ? "nessun posto disponibile" : fmt(hovered.tasso, 2) + "%"}</div>
+      <div>Numero totale di detenuti: {fmt(hovered.detenuti)}</div>
+      <hr />
+      <em>Ultimo aggiornamento: {hovered.aggiornamento}</em>
     </div>
   {/if}
-{/if}
-
-</div>
-
+</figure>

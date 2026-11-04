@@ -1,166 +1,104 @@
 <script>
   import { onMount } from "svelte";
   import { geoMercator, geoPath } from "d3-geo";
-  import { csv } from "d3-fetch";
-  import { fade } from "svelte/transition";
+  import { base } from "$app/paths";
+  import { caricaRegioni } from "./dati.js";
+  import { coloreRegione, fmt } from "./colori.js";
+  import { creaZoom } from "./zoom.js";
 
-  let width = 800;
-  let height = 700;
-  let regions = [];
-  let wrapper;
+  const width = 800;
+  const height = 700;
+  const projection = geoMercator().center([12.5, 42.5]).scale(2500).translate([width / 2, height / 2]);
+  const path = geoPath().projection(projection);
 
-  let hovered = null;
-  let tooltipX = 0;
-  let tooltipY = 0;
-
-  let isMobile = false;
-
-  onMount(() => {
-    const mq = window.matchMedia("(max-width: 768px)");
-    isMobile = mq.matches;
-    mq.addEventListener("change", e => (isMobile = e.matches));
-  });
-
-  let projection = geoMercator()
-    .center([12.5, 42.5])
-    .scale(2500)
-    .translate([width / 2, height / 2]);
-
-  let pathGenerator = geoPath().projection(projection);
-
-  function getRegionColor(value) {
-    if (!value) return "#ddd";
-
-    if (value <= 100) {
-      const ratio = value / 100;
-      const dark = [0, 100, 0];
-      const light = [144, 238, 144];
-      const r = Math.round(dark[0] + (light[0] - dark[0]) * ratio);
-      const g = Math.round(dark[1] + (light[1] - dark[1]) * ratio);
-      const b = Math.round(dark[2] + (light[2] - dark[2]) * ratio);
-      return `rgb(${r},${g},${b})`;
-    } else {
-      const capped = Math.min(value, 200);
-      const ratio = (capped - 100) / 50;
-      const orange = [255, 165, 0];
-      const redDark = [139, 0, 0];
-      const r = Math.round(orange[0] + (redDark[0] - orange[0]) * ratio);
-      const g = Math.round(orange[1] + (redDark[1] - orange[1]) * ratio);
-      const b = Math.round(orange[2] + (redDark[2] - orange[2]) * ratio);
-      return `rgb(${r},${g},${b})`;
-    }
-  }
-
-  function placeTooltip(e, r) {
-    hovered = r;
-
-    if (isMobile) {
-      tooltipX = 10;
-      tooltipY = 100; // fisso in alto
-    } else {
-      const svgRect = e.target.ownerSVGElement.getBoundingClientRect();
-      tooltipX = e.clientX - svgRect.left + 10;
-      tooltipY = e.clientY - svgRect.top - 20;
-    }
-  }
+  let regioni = $state([]);
+  let errore = $state(false);
+  let k = $state(1);
+  let t = $state("translate(0,0) scale(1)");
+  let hovered = $state(null);
+  let tip = $state({ x: 0, y: 0 });
+  let svg, wrap, comandi;
 
   onMount(async () => {
+    comandi = creaZoom(svg, width, height, (tr) => {
+      k = tr.k;
+      t = tr.toString();
+    });
     try {
-      const res = await fetch("italia-regioni.json");
-      const geojson = await res.json();
-
-      const sheetUrl =
-        "https://docs.google.com/spreadsheets/d/1wH9i9hc_B7Q91KklHFc8FHFdGrZ82SsDB1gHhNPaumg/gviz/tq?tqx=out:csv&sheet=DatiRegioni";
-      const data = await csv(sheetUrl);
-
-      const tassi = {};
-      data.forEach(d => {
-        const raw = d["Tasso_sovraffollamento_medio"];
-        if (raw) {
-          tassi[d.Regione] = parseFloat(raw.replace(",", "."));
-        }
-      });
-
-      regions = geojson.features.map(f => ({
-        d: pathGenerator(f),
-        name: f.properties.name,
-        value: tassi[f.properties.name] || null
-      }));
-    } catch (err) {
-      console.error("Errore caricamento mappa regioni:", err);
+      const [geo, dati] = await Promise.all([
+        fetch(`${base}/italia-regioni.json`).then((r) => r.json()),
+        caricaRegioni(),
+      ]);
+      const tassi = Object.fromEntries(dati.map((d) => [d.regione, d.tasso]));
+      regioni = geo.features.map((f) => ({ d: path(f), nome: f.properties.name, tasso: tassi[f.properties.name] ?? null }));
+    } catch (e) {
+      console.error(e);
+      errore = true;
     }
   });
+
+  function mostra(e, r) {
+    const b = wrap.getBoundingClientRect();
+    tip = { x: Math.min(e.clientX - b.left + 12, b.width - 220), y: e.clientY - b.top + 12 };
+    hovered = r;
+  }
 </script>
 
-<div class="relative chart-container" bind:this={wrapper}>
-  <svg
-    viewBox="0 0 {width} {height}"
-    preserveAspectRatio="xMidYMid meet"
-    class="mx-auto block"
-  >
-    <!-- Regioni -->
-    {#each regions as r}
-      <path
-        d={r.d}
-        fill={getRegionColor(r.value)}
-        stroke="#333"
-        stroke-width="0.5"
-        on:mousemove={(e) => !isMobile && placeTooltip(e, r)}
-        on:mouseleave={() => !isMobile && (hovered = null)}
-        on:click={(e) => isMobile && placeTooltip(e, r)}
-        on:touchstart={(e) => isMobile && placeTooltip(e, r)}
-      />
-    {/each}
+<figure class="grafico" bind:this={wrap}>
+  <div class="zoom-comandi">
+    <button onclick={() => comandi.piu()} aria-label="Ingrandisci">+</button>
+    <button onclick={() => comandi.meno()} aria-label="Riduci">−</button>
+    <button onclick={() => comandi.reset()} disabled={k === 1} aria-label="Torna alla vista intera">⟲</button>
+  </div>
 
-    <!-- ✅ Legenda integrata -->
-    <g transform="translate({width - 60}, 80)">
-      <rect
-        x="-40"
-        y="0"
-        width="12"
-        height="150"
-        rx="2"
-        ry="2"
-        style="fill: url(#legend-gradient);"
-      />
-      <text x="-20" y="10" font-size="10" fill="#333">200%</text>
-      <text x="-20" y="80" font-size="10" fill="#333">100%</text>
-      <text x="-20" y="150" font-size="10" fill="#333">0%</text>
+  <svg class="mappa" bind:this={svg} viewBox="0 0 {width} {height}" role="img" aria-label="Mappa delle regioni italiane per tasso medio di affollamento carcerario">
+    <g transform={t}>
+      {#each regioni as r (r.nome)}
+        <path
+          d={r.d}
+          fill={coloreRegione(r.tasso)}
+          stroke={hovered === r ? "#111" : "#333"}
+          stroke-width={(hovered === r ? 2 : 0.5) / k}
+          onpointerenter={(e) => mostra(e, r)}
+          onpointermove={(e) => mostra(e, r)}
+          onpointerleave={(e) => e.pointerType === "mouse" && (hovered = null)}
+          onclick={(e) => mostra(e, r)}
+        />
+      {/each}
+    </g>
 
+    <g class="leg-svg" transform="translate({width - 60}, 80)">
       <defs>
-        <linearGradient id="legend-gradient" x1="0" x2="0" y1="1" y2="0">
+        <linearGradient id="grad-regioni" x1="0" x2="0" y1="1" y2="0">
+          <!-- stessa scala delle regioni: verde fino al 100%, arancio al 100%, rosso scuro al 150%, poi piu' scuro -->
           <stop offset="0%" stop-color="#006400" />
           <stop offset="50%" stop-color="#90EE90" />
-          <stop offset="75%" stop-color="#FFA500" />
-          <stop offset="100%" stop-color="#8B0000" />
+          <stop offset="50%" stop-color="#FFA500" />
+          <stop offset="75%" stop-color="#8B0000" />
+          <stop offset="100%" stop-color="#170000" />
         </linearGradient>
       </defs>
+      <text x="-110" y="-14" class="leg-titolo">Tasso medio</text>
+      <rect x="-40" y="0" width="12" height="150" fill="url(#grad-regioni)" />
+      <text x="-22" y="8" class="leg">200%</text>
+      <text x="-22" y="79" class="leg">100%</text>
+      <text x="-22" y="42" class="leg">150%</text>
+      <text x="-22" y="150" class="leg">0%</text>
     </g>
   </svg>
 
-  <!-- Tooltip -->
-  {#if hovered}
-    {#if isMobile}
-      <div
-        in:fade={{ duration: 150 }}
-        out:fade={{ duration: 150 }}
-        class="absolute bg-white/80 border border-gray-400 px-2 py-1 text-xs rounded shadow pointer-events-none"
-        style="left:{tooltipX}px; top:{tooltipY}px"
-      >
-        <div class="font-bold">{hovered.name}</div>
-        <div>Tasso di affollamento: {hovered.value ? hovered.value.toFixed(2) : "n.d."}%</div>
-      </div>
-    {:else}
-      <div
-        in:fade={{ duration: 150 }}
-        out:fade={{ duration: 150 }}
-        class="absolute bg-white border border-gray-400 px-3 py-2 text-sm rounded shadow pointer-events-none"
-        style="left:{tooltipX}px; top:{tooltipY}px"
-      >
-        <div class="font-bold">{hovered.name}</div>
-        <div>Tasso di affollamento: {hovered.value ? hovered.value.toFixed(2) : "n.d."}%</div>
-      </div>
-    {/if}
-  {/if}
-</div>
+  <div class="leg-html">
+    <span>Tasso medio di affollamento</span>
+    <span class="leg-barra" style="background:linear-gradient(to right,#006400 0%,#90EE90 50%,#FFA500 50%,#8B0000 75%,#170000 100%)"></span>
+    <span class="leg-scala"><span>0%</span><span>100%</span><span>200%</span></span>
+  </div>
+  <p class="suggerimento">Passa sopra una regione (o toccala) per il dato. Per ingrandire usa i pulsanti, Ctrl + rotella o due dita.</p>
+  {#if errore}<p class="errore">Non è stato possibile caricare i dati.</p>{/if}
 
+  {#if hovered}
+    <div class="tip" style="left:{tip.x}px; top:{tip.y}px">
+      <strong>{hovered.nome}</strong>
+      <div>Tasso di affollamento: {hovered.tasso ? fmt(hovered.tasso, 2) + "%" : "n.d."}</div>
+    </div>
+  {/if}
+</figure>

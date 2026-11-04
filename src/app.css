@@ -1,115 +1,200 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* stile allineato a davidruffini.com (F7): bianco e nero squadrato, Bricolage Grotesque + Geist */
+:root {
+  --ink: #111;
+  --muted: #6a6862;
+  --line: 1.5px solid var(--ink);
+  --testo: 680px;
+  --largo: 1000px;
+  --titoli: "Bricolage Grotesque", sans-serif;
+}
 
-/* Evita scroll orizzontale e spazi bianchi */
+*, *::before, *::after { box-sizing: border-box; }
+
 html, body {
-  max-width: 100%;
+  margin: 0;
+  background: #fff;
+  color: var(--ink);
+  font-family: "Geist", sans-serif;
+  font-size: 18px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
-/* SVG, mappe e grafici sempre adattivi */
-svg, .responsive-map {
-  max-width: 100%;
-  height: auto;
-  display: block;
+img, svg { display: block; max-width: 100%; }
+
+a { color: inherit; text-underline-offset: 3px; }
+a:hover, a:focus-visible { background: var(--ink); color: #fff; text-decoration: none; }
+
+b, strong { font-weight: 500; }
+
+/* ===== intestazione ===== */
+.testata {
+  width: calc(100% - 32px);
+  max-width: var(--largo);
+  margin: 0 auto;
+  padding: 1.2rem 0;
+  font-family: var(--titoli);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.testata a { text-decoration: none; }
+
+.apertura { text-align: center; padding: 2.5rem 16px 2rem; }
+.apertura h1 { margin: 0.4rem 0; }
+.apertura img { height: clamp(110px, 24vw, 260px); width: auto; margin: 0 auto; }
+.sopra, .sotto {
+  font-family: var(--titoli);
+  font-weight: 600;
+  font-size: clamp(1.3rem, 3.4vw, 2.3rem);
+  line-height: 1.1;
+}
+.aggiornato {
+  display: inline-block;
+  margin-top: 1.4rem;
+  background: var(--ink);
+  color: #fff;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.85rem;
 }
 
-.responsive-map {
-  max-width: 800px;
+/* ===== colonne ===== */
+.testo, .largo {
+  width: calc(100% - 32px);
   margin: 0 auto;
 }
+.testo { max-width: var(--testo); }
+.largo { max-width: var(--largo); margin-top: 1.5rem; margin-bottom: 3rem; }
+.testo p { margin: 0 0 1.1rem; }
+.testo h2 {
+  font-family: var(--titoli);
+  font-weight: 700;
+  font-size: 1.9rem;
+  line-height: 1.1;
+  margin: 3.5rem 0 1rem;
+}
+.testo ul { padding-left: 1.2rem; }
+.testo li { margin: 0.4rem 0; }
+.social { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.appendice p { font-style: italic; color: #333; }
+main { padding-bottom: 5rem; }
 
-/* Contenitore grafici responsive */
-.chart-container {
+/* ===== grafici ===== */
+.grafico {
   position: relative;
+  margin: 0;
+  border-top: var(--line);
+  padding-top: 0.9rem;
+}
+.grafico figcaption h3 {
+  font-family: var(--titoli);
+  font-weight: 700;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  margin: 0 0 0.25rem;
+}
+.sottotitolo { margin: 0 0 0.8rem; color: #333; font-size: 0.95rem; }
+.grafico svg { width: 100%; height: auto; overflow: visible; }
+.grafico svg.mappa { overflow: hidden; } /* con lo zoom la mappa non deve uscire dal riquadro */
+.nota, .suggerimento { color: var(--muted); font-size: 0.78rem; margin: 0.5rem 0 0; line-height: 1.4; }
+.errore { color: #a40000; font-size: 0.9rem; }
+
+.asse { font-size: 12px; fill: var(--muted); font-family: "Geist", sans-serif; }
+.asse-titolo { font-size: 12px; fill: var(--ink); font-family: "Geist", sans-serif; }
+.griglia { stroke: #e4e4e0; stroke-width: 1; }
+.zero { stroke: var(--ink); stroke-width: 1; }
+.leg { font-size: 11px; fill: #333; font-family: "Geist", sans-serif; }
+.leg-titolo { font-size: 12px; fill: var(--ink); font-weight: 500; font-family: "Geist", sans-serif; }
+.valore-barra { font-size: 12px; font-weight: 500; fill: var(--ink); }
+.punto, path, rect, circle { cursor: default; }
+
+.tip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  background: #fff;
+  border: var(--line);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  max-width: 250px;
+}
+.tip strong { font-weight: 500; font-size: 0.9rem; }
+.tip hr { border: 0; border-top: 1px solid #ccc; margin: 0.35rem 0; }
+
+/* comandi zoom */
+.zoom-comandi {
+  position: absolute;
+  top: 0.9rem;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+}
+.zoom-comandi button,
+.pagine button,
+th button {
+  font: inherit;
+  color: inherit;
+  background: #fff;
+  cursor: pointer;
+}
+.zoom-comandi button {
+  width: 34px;
+  height: 34px;
+  border: var(--line);
+  margin-top: -1.5px;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.zoom-comandi button:hover:not(:disabled) { background: var(--ink); color: #fff; }
+.zoom-comandi button:disabled { color: #bbb; cursor: default; }
+
+/* barre (morti per causa) */
+.barre { display: grid; gap: 0.35rem; margin-top: 0.6rem; }
+.barra-riga { display: grid; grid-template-columns: 9.5rem 1fr 3.5rem; align-items: center; gap: 0.6rem; font-size: 0.9rem; }
+.barra-binario { height: 20px; }
+.barra { display: block; height: 100%; background: #9a9a95; }
+.barra.evidenza { background: var(--ink); }
+.valore { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* tabelle */
+.tabella input[type="search"] {
   width: 100%;
-  max-width: 100%;
-  overflow: hidden;
+  max-width: 340px;
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.45rem 0.6rem;
+  border: var(--line);
+  border-radius: 0;
+  margin: 0.4rem 0 0.8rem;
 }
+.scorri { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th { text-align: left; border-bottom: var(--line); padding: 0; vertical-align: bottom; }
+th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+th button { border: 0; padding: 0.4rem 0.5rem; font-weight: 500; text-align: inherit; width: 100%; }
+th button:hover { background: #f1f1ee; }
+.freccia { display: inline-block; width: 0.9em; }
+td { padding: 0.4rem 0.5rem; border-bottom: 1px solid #e4e4e0; white-space: nowrap; }
+td:first-child { white-space: normal; min-width: 11rem; }
+.vuoto { color: var(--muted); text-align: center !important; padding: 1.5rem; }
+.pagine { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 0.7rem; font-size: 0.85rem; }
+.pagine button { border: var(--line); padding: 0.3rem 0.7rem; }
+.pagine button:hover:not(:disabled) { background: var(--ink); color: #fff; }
+.pagine button:disabled { color: #bbb; border-color: #ccc; cursor: default; }
 
-.chart-container svg,
-.chart-container canvas {
-  display: block;
-  width: 100% !important;
-  height: auto !important;
-  max-width: 100%;
+/* legenda delle mappe in HTML: solo su schermi piccoli, dove quella nel disegno diventa illeggibile */
+.leg-html { display: none; font-size: 0.8rem; margin-top: 0.4rem; max-width: 320px; }
+.leg-html > span { display: block; }
+.leg-barra { height: 10px; margin: 0.3rem 0 0.15rem; }
+.leg-scala { display: flex !important; justify-content: space-between; color: var(--muted); }
+.leg-nota { color: var(--muted); margin-top: 0.3rem; }
+
+@media (max-width: 640px) {
+  .leg-svg { display: none; }
+  .leg-html { display: block; }
+  html, body { font-size: 16px; }
+  .barra-riga { grid-template-columns: 7rem 1fr 3rem; font-size: 0.82rem; }
+  .testo h2 { font-size: 1.5rem; }
 }
-
-/* Background della pagina */
-.page-bg {
-  min-height: 100vh;
-  background: radial-gradient(circle, #f3f4f6 92%, black 100%);
-}
-
-a {
-  @apply underline decoration-2 decoration-black text-black transition-colors duration-300;
-}
-a:hover {
-  @apply bg-black text-white;
-}
-p {
-  @apply text-black;
-}
-
-/* =========================
-   RESPONSIVE
-   ========================= */
-@media (max-width: 768px) {
-  .responsive-map {
-    max-width: 400px;
-    width: 90%;
-  }
-
-  .page-bg {
-    background: radial-gradient(circle, #f3f4f6 98%, black 100%);
-  }
-
-  section.text-center img {
-    height: 120px;
-  }
-  section.text-center .text-lg,
-  section.text-center .md\:text-4xl {
-    font-size: 1.25rem; /* ~20px */
-  }
-
-  section p {
-    font-size: 1rem;
-    line-height: 1.5;
-    padding: 0 1rem;
-  }
-
-  section {
-    min-height: auto !important;
-    padding: 2rem 0;
-  }
-
-  section ul {
-    display: flex;
-    justify-content: center;
-    gap: 1.5rem;
-    padding: 0;
-    list-style: none;
-  }
-  section ul li a i {
-    font-size: 1.5rem;
-  }
-
-  .chart-container {
-    padding: 0 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  section.text-center img {
-    height: 90px;
-  }
-  section.text-center .text-lg {
-    font-size: 1rem;
-  }
-  section p {
-    font-size: 0.9rem;
-    padding: 0 0.75rem;
-  }
-}
-

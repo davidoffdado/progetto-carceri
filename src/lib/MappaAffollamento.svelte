@@ -19,20 +19,31 @@
   let k = $state(1);
   let t = $state("translate(0,0) scale(1)");
   let hovered = $state(null);
+  let fisso = $state(false); // dopo un clic il riquadro resta aperto e ha il link alla scheda
   let tip = $state({ x: 0, y: 0 });
   let svg, wrap, comandi;
+  let riquadro = $state([0, 0, width, height]);
 
   let raggio = $derived(scaleSqrt().domain([0, max(istituti, (d) => d.detenuti) || 1]).range([4, 20]));
   let legendaDimensioni = $derived(ticks(0, max(istituti, (d) => d.detenuti) || 0, 3).filter((v) => v > 0));
 
-  onMount(async () => {
-    comandi = creaZoom(svg, width, height, (tr) => {
+  // su telefono la mappa si stringe sull'Italia, senza lo spazio delle legende (che vanno sotto)
+  function inquadra(geo) {
+    if (window.matchMedia("(max-width: 640px)").matches) {
+      const [[a, b], [c, d]] = path.bounds(geo);
+      riquadro = [a - 8, b - 8, c - a + 16, d - b + 16];
+    }
+    comandi = creaZoom(svg, riquadro, (tr) => {
       k = tr.k;
       t = tr.toString();
     });
+  }
+
+  onMount(async () => {
     try {
       const geo = await (await fetch(`${base}/italia.json`)).json();
       paths = geo.features.map((f) => path(f));
+      inquadra(geo);
       istituti = (await caricaIstituti())
         .filter((d) => !isNaN(d.lat) && !isNaN(d.lng))
         .map((d) => ({ ...d, xy: projection([d.lng, d.lat]) }))
@@ -44,6 +55,7 @@
   });
 
   function mostra(e, d) {
+    if (fisso && e.type !== "click") return;
     const r = wrap.getBoundingClientRect();
     const x = e.clientX - r.left;
     tip = { x: Math.min(x + 12, r.width - 250), y: e.clientY - r.top + 12 };
@@ -53,12 +65,17 @@
 
 <figure class="grafico" bind:this={wrap}>
   <div class="zoom-comandi">
-    <button onclick={() => comandi.piu()} aria-label="Ingrandisci">+</button>
-    <button onclick={() => comandi.meno()} aria-label="Riduci">−</button>
-    <button onclick={() => comandi.reset()} disabled={k === 1} aria-label="Torna alla vista intera">⟲</button>
+    <button onclick={() => comandi?.piu()} aria-label="Ingrandisci">+</button>
+    <button onclick={() => comandi?.meno()} aria-label="Riduci">−</button>
+    <button onclick={() => comandi?.reset()} disabled={k === 1} aria-label="Torna alla vista intera">⟲</button>
   </div>
 
-  <svg class="mappa" bind:this={svg} viewBox="0 0 {width} {height}" role="img" aria-label="Mappa degli istituti penitenziari italiani per tasso di affollamento e numero di detenuti" onclick={(e) => !e.target.classList.contains("punto") && (hovered = null)}>
+  <svg class="mappa" bind:this={svg} viewBox={riquadro.join(" ")} role="img" aria-label="Mappa degli istituti penitenziari italiani per tasso di affollamento e numero di detenuti" onclick={(e) => {
+      if (!e.target.classList.contains("punto")) {
+        hovered = null;
+        fisso = false;
+      }
+    }}>
     <g transform={t}>
       {#each paths as d}
         <path {d} fill="#f9f9f9" stroke="#333" stroke-width={0.5 / k} />
@@ -75,8 +92,11 @@
           stroke-width={1.5 / k}
           onpointerenter={(e) => mostra(e, d)}
           onpointermove={(e) => mostra(e, d)}
-          onpointerleave={(e) => e.pointerType === "mouse" && (hovered = null)}
-          onclick={(e) => mostra(e, d)}
+          onpointerleave={(e) => e.pointerType === "mouse" && !fisso && (hovered = null)}
+          onclick={(e) => {
+            mostra(e, d);
+            fisso = true;
+          }}
         />
       {/each}
     </g>
@@ -117,16 +137,21 @@
     <span class="leg-scala"><span>0%</span><span>100%</span><span>200%</span></span>
     <span class="leg-nota">La grandezza del cerchio indica il numero di detenuti.</span>
   </div>
-  <p class="suggerimento">Passa sopra un cerchio (o toccalo) per i dettagli. Per ingrandire usa i pulsanti, Ctrl + rotella o due dita; trascina per spostarti.</p>
+  <p class="suggerimento">Passa sopra un cerchio per i dettagli, cliccalo (o toccalo) per aprire la scheda dell'istituto. Per ingrandire usa i pulsanti, Ctrl + rotella o due dita; trascina per spostarti.</p>
   {#if errore}<p class="errore">Non è stato possibile caricare i dati.</p>{/if}
 
   {#if hovered}
-    <div class="tip" style="left:{tip.x}px; top:{tip.y}px">
+    <div class="tip" class:fisso style="left:{Math.max(0, tip.x)}px; top:{tip.y}px">
       <strong>{hovered.nome}</strong>
       <div>Tasso di affollamento: {isNaN(hovered.tasso) ? "nessun posto disponibile" : fmt(hovered.tasso, 2) + "%"}</div>
       <div>Numero totale di detenuti: {fmt(hovered.detenuti)}</div>
       <hr />
       <em>Ultimo aggiornamento: {hovered.aggiornamento}</em>
+      {#if fisso}
+        <a class="tip-link" href="{base}/istituto/{hovered.slug}/">Apri la scheda dell'istituto →</a>
+      {:else}
+        <div class="tip-aiuto">Clicca per aprire la scheda</div>
+      {/if}
     </div>
   {/if}
 </figure>

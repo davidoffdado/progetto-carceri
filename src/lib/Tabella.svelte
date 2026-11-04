@@ -1,5 +1,7 @@
 <script>
-  // Tabella con ricerca, ordinamento e pagine. colonne: [{ key, label, fmt?, num?, sfondo? }]
+  import { base } from "$app/paths";
+  // Tabella con ricerca, ordinamento e pagine. colonne: [{ key, label, fmt?, num?, sfondo?, link?, mobile? }]
+  // link: il valore apre la pagina dell'istituto; mobile: false nasconde la colonna su telefono
   let { titolo, righe = [], colonne, ordinaPer, perPagina = 10, cerca = ["nome", "regione"], nota = "" } = $props();
 
   let q = $state("");
@@ -41,7 +43,7 @@
       <thead>
         <tr>
           {#each colonne as c}
-            <th class:num={c.num} aria-sort={chiave === c.key ? (discendente ? "descending" : "ascending") : "none"}>
+            <th class:num={c.num} class:solo-desktop={c.mobile === false} aria-sort={chiave === c.key ? (discendente ? "descending" : "ascending") : "none"}>
               <button onclick={() => ordina(c.key)}>
                 {c.label}<span class="freccia">{chiave === c.key ? (discendente ? "↓" : "↑") : ""}</span>
               </button>
@@ -53,7 +55,9 @@
         {#each visibili as r}
           <tr>
             {#each colonne as c}
-              <td class:num={c.num} style={c.sfondo ? `background:${c.sfondo(r[c.key])}` : ""}>{c.fmt ? c.fmt(r[c.key], r) : r[c.key]}</td>
+              <td class:num={c.num} class:solo-desktop={c.mobile === false} style={c.sfondo ? `background:${c.sfondo(r[c.key])}` : ""}>
+                {#if c.link}<a href="{base}/istituto/{r.slug}/">{r[c.key]}</a>{:else}{c.fmt ? c.fmt(r[c.key], r) : r[c.key]}{/if}
+              </td>
             {/each}
           </tr>
         {:else}

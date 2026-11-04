@@ -8,8 +8,21 @@ const SHEET_STORICO = "1REAvN1QFv3IzkbHbI7AICLAhDICeh9Vvd4f_Xk-6vOs";
 const gviz = (id, sheet) =>
   `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv` + (sheet ? `&sheet=${encodeURIComponent(sheet)}` : "");
 
-// link per scaricare i dati (stessi della pagina originale)
+// storico per istituto: CSV aggiornato ogni giorno dallo scraper nel suo repository
+const STORICO_ISTITUTI = "https://raw.githubusercontent.com/davidoffdado/sovraffollamento-carcerario/main/data/storico-istituti.csv";
+
+// indirizzo della pagina di un istituto: "Genova Marassi" -> "genova-marassi"
+export const slug = (nome) =>
+  nome
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+// link per scaricare i dati (stessi della pagina originale, piu' lo storico per istituto)
 export const DOWNLOAD = {
+  storicoIstituti: STORICO_ISTITUTI,
   istituti: `https://docs.google.com/spreadsheets/d/${SHEET_ISTITUTI}/export?format=csv&gid=1943472560`,
   regioni: `https://docs.google.com/spreadsheets/d/${SHEET_ISTITUTI}/export?format=csv&gid=1408753092`,
   storico: `https://docs.google.com/spreadsheets/d/${SHEET_STORICO}/export?format=csv&gid=594867098`,
@@ -42,6 +55,8 @@ export const caricaIstituti = () =>
         const previsti = num(d.PolPen_previsti);
         const disponibili = num(d.Posti_regolamentari) - num(d.Posti_non_disponibili);
         return {
+          id: num(d.ID_istituto),
+          slug: slug(d.Nome_istituto || ""),
           nome: d.Nome_istituto,
           regione: d.Regione,
           // senza posti disponibili (istituto chiuso, es. Pozzuoli) il tasso non ha senso: lo scraper scrive 0
@@ -74,6 +89,20 @@ export const caricaStorico = () =>
     (await leggi(gviz(SHEET_STORICO, "Storico")))
       .map((d) => ({ data: new Date(d.data), tasso: num(d.tasso_sovraffollamento_nazionale) }))
       .filter((d) => !isNaN(d.data) && !isNaN(d.tasso))
+      .sort((a, b) => a.data - b.data)
+  );
+
+// storico di un istituto (fino al 4/11/2026 solo alcune date, poi giornaliero)
+export const caricaStoricoIstituto = (id) =>
+  una("storicoIstituti", async () => {
+    const res = await fetch(STORICO_ISTITUTI);
+    if (!res.ok) throw new Error("storico per istituto non disponibile");
+    return csvParse(await res.text());
+  }).then((righe) =>
+    righe
+      .filter((d) => +d.ID_istituto === +id)
+      .map((d) => ({ data: new Date(d.data), tasso: num(d.Tasso_sovraffollamento), detenuti: num(d.Totale_detenuti) }))
+      .filter((d) => !isNaN(d.data) && !isNaN(d.tasso) && d.tasso > 0)
       .sort((a, b) => a.data - b.data)
   );
 

@@ -184,6 +184,92 @@ td:first-child { white-space: normal; min-width: 11rem; }
 .pagine button:hover:not(:disabled) { background: var(--ink); color: #fff; }
 .pagine button:disabled { color: #bbb; border-color: #ccc; cursor: default; }
 
+/* ===== numeri in apertura ===== */
+.apertura-dati { margin-top: 0; }
+.numeri {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  border-top: var(--line);
+  border-bottom: var(--line);
+  margin-bottom: 2rem;
+}
+.numero { padding: 1rem 1rem 1.1rem 0; }
+.numero + .numero { border-left: var(--line); padding-left: 1rem; }
+.cifra {
+  display: block;
+  font-family: var(--titoli);
+  font-weight: 700;
+  font-size: clamp(2rem, 4.5vw, 2.8rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.spiega { display: block; margin-top: 0.45rem; font-size: 0.85rem; line-height: 1.35; color: #333; }
+
+/* ===== cerca il tuo carcere ===== */
+.cerca { margin-bottom: 1rem; }
+.cerca label { display: block; font-family: var(--titoli); font-weight: 700; font-size: 1.35rem; margin-bottom: 0.4rem; }
+.cerca-campo { position: relative; max-width: 520px; }
+.cerca input {
+  width: 100%;
+  font: inherit;
+  padding: 0.6rem 0.75rem;
+  border: var(--line);
+  border-radius: 0;
+}
+.cerca ul {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: #fff;
+  border: var(--line);
+  border-top: 0;
+}
+.cerca li a { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0.75rem; text-decoration: none; }
+.cerca li a.attivo, .cerca li a:hover { background: var(--ink); color: #fff; }
+.cerca-info { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+.cerca li a.attivo .cerca-info, .cerca li a:hover .cerca-info { color: #ccc; }
+.cerca-vuoto { color: var(--muted); font-size: 0.9rem; margin: 0.4rem 0 0; }
+
+/* ===== pagina istituto ===== */
+.istituto .largo { margin-top: 1rem; }
+.torna { font-size: 0.9rem; }
+.occhiello { margin: 1.8rem 0 0; color: var(--muted); font-size: 0.95rem; }
+.istituto h1 {
+  font-family: var(--titoli);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  line-height: 1.02;
+  margin: 0.2rem 0 1.2rem;
+}
+.scheda-tasso { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.scheda-tasso .cifra { display: inline; }
+.scheda-tasso .spiega { display: inline; margin: 0; }
+.pallino { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #111; flex: none; }
+.testo-istituto { max-width: var(--testo); }
+.testo-istituto p { margin: 0 0 1rem; }
+.fatti {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 1.5rem 0 1rem;
+  border-top: var(--line);
+}
+.fatti div { padding: 0.7rem 0.8rem 0.7rem 0; border-bottom: 1px solid #e4e4e0; }
+.fatti dt { font-size: 0.82rem; color: var(--muted); }
+.fatti dd { margin: 0.15rem 0 0; font-family: var(--titoli); font-weight: 700; font-size: 1.3rem; }
+.legenda-linee { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.85rem; margin: 0 0 0.6rem; }
+.tratto { display: inline-block; width: 22px; height: 0; border-top: 2.5px solid #111; vertical-align: middle; margin-right: 0.4rem; }
+.tratto.tratteggio { border-top: 2px dashed #8a8984; }
+
+/* tooltip della mappa bloccato dal clic: cliccabile */
+.tip.fisso { pointer-events: auto; }
+.tip-link { display: inline-block; margin-top: 0.4rem; font-weight: 500; }
+.tip-aiuto { margin-top: 0.3rem; color: var(--muted); font-size: 0.75rem; }
+td a { text-decoration: underline; text-decoration-thickness: 1px; }
+
 /* legenda delle mappe in HTML: solo su schermi piccoli, dove quella nel disegno diventa illeggibile */
 .leg-html { display: none; font-size: 0.8rem; margin-top: 0.4rem; max-width: 320px; }
 .leg-html > span { display: block; }
@@ -192,6 +278,14 @@ td:first-child { white-space: normal; min-width: 11rem; }
 .leg-nota { color: var(--muted); margin-top: 0.3rem; }
 
 @media (max-width: 640px) {
+  .solo-desktop { display: none; }
+  .fatti { grid-template-columns: 1fr 1fr; }
+  .fatti dd { font-size: 1.1rem; }
+  .numeri { grid-template-columns: 1fr 1fr; }
+  .numero:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .numero:nth-child(n + 3) { border-top: 1px solid #e4e4e0; }
+  .numero + .numero { padding-left: 0.8rem; }
+  .numero:nth-child(odd) { padding-left: 0; }
   .leg-svg { display: none; }
   .leg-html { display: block; }
   html, body { font-size: 16px; }

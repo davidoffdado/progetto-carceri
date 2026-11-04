@@ -4,11 +4,13 @@ import { zoom, zoomIdentity } from "d3-zoom";
 import { select } from "d3-selection";
 import "d3-transition";
 
-export function creaZoom(svg, width, height, onZoom) {
+// riquadro = [x0, y0, larghezza, altezza] della parte visibile (su telefono la mappa e' inquadrata piu' stretta)
+export function creaZoom(svg, riquadro, onZoom) {
+  const [x0, y0, w, h] = riquadro;
   const z = zoom()
     .scaleExtent([1, 10])
-    .translateExtent([[0, 0], [width, height]])
-    .extent([[0, 0], [width, height]])
+    .translateExtent([[x0, y0], [x0 + w, y0 + h]])
+    .extent([[x0, y0], [x0 + w, y0 + h]])
     .filter((e) => {
       if (e.type === "wheel") return e.ctrlKey || e.metaKey;
       if (e.type === "touchstart") return e.touches.length > 1;

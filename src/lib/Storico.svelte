@@ -47,7 +47,8 @@
       .range([height - m.bottom, m.top])
   );
   let d = $derived(line().x((p) => x(p.data)).y((p) => y(p.tasso)).curve(curveMonotoneX)(dati) ?? "");
-  let mesi = $derived(dati.length ? timeMonth.range(...x.domain()).filter((_, i, a) => a.length < 9 || width > 600 || i % 2 === 0) : []);
+  // un'etichetta ogni 1, 2 o 3 mesi a seconda dello spazio
+  let mesi = $derived(dati.length ? timeMonth.every(width < 520 ? 3 : width < 820 ? 2 : 1).range(...x.domain()) : []);
   let ultimo = $derived(dati.at(-1));
   let buchi = $derived(trovaBuchi(dati));
 
@@ -67,7 +68,7 @@
     {/if}
   </figcaption>
 
-  <svg viewBox="0 0 {width} {height}" role="img" aria-label="Andamento del tasso di affollamento carcerario nazionale" onpointermove={muovi} onpointerleave={() => (hovered = null)}>
+  <svg viewBox="0 0 {width} {height}" role="img" aria-label="Andamento del tasso di affollamento carcerario nazionale" style="touch-action: pan-y" onpointermove={muovi} onpointerdown={muovi} onpointerleave={() => (hovered = null)}>
     {#if dati.length}
       {#each buchi as [da, a]}
         <rect x={x(da)} y={m.top} width={x(a) - x(da)} height={height - m.top - m.bottom} fill="#888" opacity="0.15" />
@@ -88,7 +89,7 @@
   </svg>
 
   {#if hovered}
-    <div class="tip" style="left:{Math.min(x(hovered.data) + 12, width - 170)}px; top:{y(hovered.tasso) - 50}px">
+    <div class="tip" style="left:{Math.max(0, Math.min(x(hovered.data) + 12, width - 170))}px; top:{Math.max(0, y(hovered.tasso) - 50)}px">
       <strong>{dataLunga(hovered.data)}</strong>
       <div>{fmt(hovered.tasso, 2)}%</div>
     </div>

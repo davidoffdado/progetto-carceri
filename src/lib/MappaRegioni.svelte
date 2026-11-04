@@ -18,17 +18,27 @@
   let hovered = $state(null);
   let tip = $state({ x: 0, y: 0 });
   let svg, wrap, comandi;
+  let riquadro = $state([0, 0, width, height]);
 
-  onMount(async () => {
-    comandi = creaZoom(svg, width, height, (tr) => {
+  // su telefono la mappa si stringe sull'Italia, senza lo spazio delle legende (che vanno sotto)
+  function inquadra(geo) {
+    if (window.matchMedia("(max-width: 640px)").matches) {
+      const [[a, b], [c, d]] = path.bounds(geo);
+      riquadro = [a - 8, b - 8, c - a + 16, d - b + 16];
+    }
+    comandi = creaZoom(svg, riquadro, (tr) => {
       k = tr.k;
       t = tr.toString();
     });
+  }
+
+  onMount(async () => {
     try {
       const [geo, dati] = await Promise.all([
         fetch(`${base}/italia-regioni.json`).then((r) => r.json()),
         caricaRegioni(),
       ]);
+      inquadra(geo);
       const tassi = Object.fromEntries(dati.map((d) => [d.regione, d.tasso]));
       regioni = geo.features.map((f) => ({ d: path(f), nome: f.properties.name, tasso: tassi[f.properties.name] ?? null }));
     } catch (e) {
@@ -46,12 +56,12 @@
 
 <figure class="grafico" bind:this={wrap}>
   <div class="zoom-comandi">
-    <button onclick={() => comandi.piu()} aria-label="Ingrandisci">+</button>
-    <button onclick={() => comandi.meno()} aria-label="Riduci">−</button>
-    <button onclick={() => comandi.reset()} disabled={k === 1} aria-label="Torna alla vista intera">⟲</button>
+    <button onclick={() => comandi?.piu()} aria-label="Ingrandisci">+</button>
+    <button onclick={() => comandi?.meno()} aria-label="Riduci">−</button>
+    <button onclick={() => comandi?.reset()} disabled={k === 1} aria-label="Torna alla vista intera">⟲</button>
   </div>
 
-  <svg class="mappa" bind:this={svg} viewBox="0 0 {width} {height}" role="img" aria-label="Mappa delle regioni italiane per tasso medio di affollamento carcerario">
+  <svg class="mappa" bind:this={svg} viewBox={riquadro.join(" ")} role="img" aria-label="Mappa delle regioni italiane per tasso medio di affollamento carcerario">
     <g transform={t}>
       {#each regioni as r (r.nome)}
         <path

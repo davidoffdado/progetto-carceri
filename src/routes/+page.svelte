@@ -8,6 +8,9 @@
   import ScatterAgenti from "$lib/ScatterAgenti.svelte";
   import MortiCause from "$lib/MortiCause.svelte";
   import Suicidi from "$lib/Suicidi.svelte";
+  import NumeriChiave from "$lib/NumeriChiave.svelte";
+  import Cerca from "$lib/Cerca.svelte";
+  import { rollups, sum, greatest } from "d3-array";
   import { caricaIstituti, caricaMorti, DOWNLOAD } from "$lib/dati.js";
   import { fmt, sfondoTasso, sfondoRapporto } from "$lib/colori.js";
 
@@ -26,23 +29,28 @@
       });
   });
 
+  // anno con piu' suicidi, calcolato dai dati (la frase si aggiorna da sola)
+  let record = $derived(
+    greatest(rollups(morti.filter((d) => d.causa === "Suicidio"), (v) => sum(v, (d) => d.n), (d) => d.anno), (d) => d[1])
+  );
+
   const dataIt = (s) => (s ? s.split("-").reverse().join("/") : "");
 
   const colonneIstituti = [
-    { key: "nome", label: "Istituto" },
-    { key: "regione", label: "Regione" },
+    { key: "nome", label: "Istituto", link: true },
+    { key: "regione", label: "Regione", mobile: false },
     { key: "detenuti", label: "Detenuti", num: true, fmt: (v) => fmt(v) },
-    { key: "posti", label: "Posti regolamentari", num: true, fmt: (v) => fmt(v) },
-    { key: "nonDisponibili", label: "Posti non disponibili", num: true, fmt: (v) => fmt(v) },
+    { key: "posti", label: "Posti regolamentari", num: true, fmt: (v) => fmt(v), mobile: false },
+    { key: "nonDisponibili", label: "Posti non disponibili", num: true, fmt: (v) => fmt(v), mobile: false },
     { key: "tasso", label: "Tasso di affollamento", num: true, fmt: (v) => fmt(v, 1) + "%", sfondo: sfondoTasso },
   ];
   const colonneAgenti = [
-    { key: "nome", label: "Istituto" },
-    { key: "agentiEffettivi", label: "Agenti effettivi", num: true, fmt: (v) => fmt(v) },
-    { key: "agentiPrevisti", label: "Agenti previsti", num: true, fmt: (v) => fmt(v) },
+    { key: "nome", label: "Istituto", link: true },
+    { key: "agentiEffettivi", label: "Agenti effettivi", num: true, fmt: (v) => fmt(v), mobile: false },
+    { key: "agentiPrevisti", label: "Agenti previsti", num: true, fmt: (v) => fmt(v), mobile: false },
     { key: "deficit", label: "Deficit", num: true, fmt: (v) => fmt(v, 1) + "%" },
-    { key: "detenuti", label: "Detenuti", num: true, fmt: (v) => fmt(v) },
-    { key: "tasso", label: "Tasso di affollamento", num: true, fmt: (v) => fmt(v, 0) + "%" },
+    { key: "detenuti", label: "Detenuti", num: true, fmt: (v) => fmt(v), mobile: false },
+    { key: "tasso", label: "Tasso di affollamento", num: true, fmt: (v) => fmt(v, 0) + "%", mobile: false },
     { key: "detenutiPerAgente", label: "Detenuti per agente", num: true, fmt: (v) => fmt(v, 2), sfondo: sfondoRapporto },
   ];
 </script>
@@ -64,13 +72,18 @@
     {#if aggiornamento}<p class="aggiornato">Dati aggiornati al {dataIt(aggiornamento)}</p>{/if}
   </section>
 
+  <div class="largo apertura-dati">
+    <NumeriChiave {istituti} {morti} />
+    <Cerca {istituti} />
+  </div>
+
   <div class="testo">
     <p>
       Il lavoro presente in questo sito è realizzato da
       <a href="https://www.davidruffini.com/">David Ruffini</a> e vuole mostrare lo stato delle carceri italiane, ormai da anni caratterizzate da un <b>sovraffollamento grave</b> che si ripercuote <b>sia sui detenuti che sugli altri operatori</b> presenti negli istituti.
     </p>
     <p>
-      Un altro elemento che si vuole approfondire è quello dei <b>suicidi</b>. Solamente nel 2024, sono stati 92 i detenuti che si sono tolti la vita all'interno delle mura carcerarie, segnando il numero più elevato dal 2002 a oggi.
+      Un altro elemento che si vuole approfondire è quello dei <b>suicidi</b>.{#if record}{" "}Solamente nel {record[0]}, sono stati {record[1]} i detenuti che si sono tolti la vita all'interno delle mura carcerarie, segnando il numero più elevato dal 2002 a oggi.{/if}
     </p>
     <p>
       La mappa permette di visualizzare le carceri su due dimensioni: quella geografica e quella numerica. Quest'ultima è rappresentata da due misure importanti: il numero dei detenuti totali, rappresentato dalle dimensioni di ciascun cerchio, e il tasso di affollamento, evidenziato dal colore.
@@ -113,7 +126,7 @@
 
   <div class="testo">
     <p>
-      Un altro grave problema legato alle carceri italiane è la <b>carenza di personale</b>. Nel grafico, sono mostrate le carceri attraverso uno scatter plot, dove la dimensione di ciascun istituto è determinata dal numero medio di detenuti per agente, mentre sulle assi delle x e delle y si trovano rispettivamento il totale dei detenuti e il deficit di poliziotti penitenziari rispetto a quelli previsti.
+      Un altro grave problema legato alle carceri italiane è la <b>carenza di personale</b>. Nel grafico, sono mostrate le carceri attraverso uno scatter plot, dove la dimensione di ciascun istituto è determinata dal numero medio di detenuti per agente, mentre sugli assi delle x e delle y si trovano rispettivamente il totale dei detenuti e il deficit di poliziotti penitenziari rispetto a quelli previsti.
     </p>
   </div>
 
@@ -142,7 +155,7 @@
   <div class="largo"><MortiCause {morti} errore={erroreMorti} /></div>
 
   <div class="testo">
-    <p>Il 2024 ha segnato il numero più elevato di suicidi negli istituti penitenziari italiani.</p>
+    <p>{#if record}Il {record[0]} ha segnato il numero più elevato di suicidi negli istituti penitenziari italiani.{:else}Il numero dei suicidi negli istituti penitenziari italiani, anno per anno.{/if}</p>
   </div>
 
   <div class="largo"><Suicidi {morti} errore={erroreMorti} /></div>
@@ -155,6 +168,7 @@
       <li><a href={DOWNLOAD.regioni} download>Dati sul sovraffollamento carcerario a livello regionale</a></li>
       <li><a href={DOWNLOAD.istituti} download>Dati sugli agenti di polizia penitenziaria nelle carceri</a></li>
       <li><a href={DOWNLOAD.storico} download>Dati sul sovraffollamento carcerario a livello nazionale nel tempo</a></li>
+      <li><a href={DOWNLOAD.storicoIstituti} download>Dati sul sovraffollamento di ogni istituto nel tempo</a></li>
     </ul>
   </section>
 

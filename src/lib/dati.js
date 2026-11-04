@@ -110,16 +110,9 @@ export const caricaStoricoIstituto = (id) =>
 // morti per istituto (scheda "MortiIstituti", abbinamento prudente dei nomi di Ristretti Orizzonti)
 export const caricaMortiIstituto = (id) =>
   una("mortiIstituti", async () => {
-    let righe;
-    try {
-      righe = await leggi(gviz(SHEET_ISTITUTI, "MortiIstituti"));
-      // se la scheda non esiste Google restituisce la prima del file: controllo le colonne
-      if (!righe.length || !("ID_istituto" in righe[0]) || !("causa" in righe[0])) throw new Error("scheda MortiIstituti non ancora creata");
-    } catch (e) {
-      if (!import.meta.env.DEV) throw e;
-      const { default: csv } = await import("./anteprima/morti-istituti.csv?raw");
-      righe = csvParse(csv);
-    }
+    const righe = await leggi(gviz(SHEET_ISTITUTI, "MortiIstituti"));
+    // se la scheda non esiste Google restituisce la prima del file: controllo le colonne
+    if (!righe.length || !("ID_istituto" in righe[0]) || !("causa" in righe[0])) throw new Error("scheda MortiIstituti non disponibile");
     return righe;
   }).then((righe) =>
     righe
@@ -132,16 +125,9 @@ export const caricaMortiIstituto = (id) =>
 // nella scheda "Morti" del foglio pubblico (il foglio con i nomi resta privato)
 export const caricaMorti = () =>
   una("morti", async () => {
-    let righe;
-    try {
-      righe = await leggi(gviz(SHEET_ISTITUTI, "Morti"));
-      if (!righe.length || !("causa" in righe[0])) throw new Error("scheda Morti non ancora creata");
-    } catch (e) {
-      // solo in sviluppo: anteprima locale finche' lo scraper non ha creato la scheda
-      if (!import.meta.env.DEV) throw e;
-      const { default: csv } = await import("./anteprima/morti.csv?raw");
-      righe = csvParse(csv);
-    }
+    const righe = await leggi(gviz(SHEET_ISTITUTI, "Morti"));
+    // se la scheda non esiste Google restituisce la prima del file: controllo le colonne
+    if (!righe.length || !("causa" in righe[0])) throw new Error("scheda Morti non disponibile");
     return righe
       .map((d) => ({ anno: +d.anno, causa: d.causa, n: +d.morti }))
       .filter((d) => d.anno >= 2002 && d.causa && d.n > 0);

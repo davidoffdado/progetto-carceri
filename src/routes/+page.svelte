@@ -162,13 +162,13 @@
 
   <section class="testo">
     <h2>Download dei dati</h2>
-    <p>I dati sono scaricabili da ogni singola dashboard, ma di seguito sono stati comunque inseriti i link per il download:</p>
+    <p>Tutti i dati usati in questa pagina sono pubblici e si possono scaricare in formato CSV:</p>
     <ul>
-      <li><a href={DOWNLOAD.istituti} download>Dati sugli istituti penitenziari</a></li>
+      <li><a href={DOWNLOAD.istituti} download>Dati sugli istituti penitenziari</a>, aggiornati ogni giorno: detenuti, posti, agenti di polizia penitenziaria, personale e servizi di ogni carcere</li>
       <li><a href={DOWNLOAD.regioni} download>Dati sul sovraffollamento carcerario a livello regionale</a></li>
-      <li><a href={DOWNLOAD.istituti} download>Dati sugli agenti di polizia penitenziaria nelle carceri</a></li>
       <li><a href={DOWNLOAD.storico} download>Dati sul sovraffollamento carcerario a livello nazionale nel tempo</a></li>
       <li><a href={DOWNLOAD.storicoIstituti} download>Dati sul sovraffollamento di ogni istituto nel tempo</a></li>
+      <li><a href={DOWNLOAD.morti} download>Dati sulle morti in carcere per anno e causa</a></li>
     </ul>
   </section>
 
@@ -186,19 +186,26 @@
     <p>
       Tecnicamente, il progetto sfrutta due script in R: uno raccoglie i dati relativi al sovraffollamento, mentre l'altro si occupa dei dati sulle morti. I dati riguardanti il sovraffollamento provengono dalle
       <a href="https://www.giustizia.it/giustizia/page/it/istituti_penitenziari">schede di trasparenza</a>
-      pubblicate dal Ministero della Giustizia e aggiornate giornalmente, a livello di ogni singolo istituto penitenziario; diversamente, i dati sulle morti dei detenuti provengono da
+      pubblicate dal Ministero della Giustizia e aggiornate giornalmente, a livello di ogni singolo istituto penitenziario; diversamente, i dati sulle morti dei detenuti provengono dal dossier "Morire di carcere" di
       <a href="http://www.ristretti.it/areestudio/disagio/ricerca/">Ristretti Orizzonti</a>.
     </p>
     <p>
-      Gli script girano automaticamente giornalmente e, in base alla presenza di nuovi dati, le relative dashboard si aggiornano di conseguenza. Il codice si trova su
-      <a href="https://github.com/davidoffdado/sovraffollamento-carcerario">GitHub</a>.
+      Gli script girano automaticamente ogni mattina su GitHub Actions e salvano i risultati su Google Sheets; la fotografia quotidiana di ogni istituto si aggiunge inoltre a un archivio storico. Prima di aggiornare i dati, lo script controlla che siano stati letti quasi tutti gli istituti e che i valori siano plausibili: in caso contrario l'aggiornamento viene annullato e restano i dati del giorno precedente. Se un singolo istituto non risponde, mantiene i dati del suo ultimo aggiornamento, indicato nella sua scheda.
+    </p>
+    <p>
+      Lo storico dei singoli istituti è giornaliero dal 4 novembre 2026; per i mesi precedenti è stato ricostruito dalle versioni pubblicate dei grafici del progetto e comprende quindi solo alcune date. Il tasso di affollamento regionale è calcolato come rapporto tra i detenuti e i posti disponibili della regione, allo stesso modo di quello nazionale. Gli istituti senza posti disponibili, perché chiusi o inagibili, non hanno un tasso di affollamento e sono esclusi dalla classifica.
+    </p>
+    <p>
+      Questa pagina legge i dati ogni volta che viene aperta, quindi mappe, grafici e tabelle sono sempre aggiornati. Il codice si trova su GitHub, sia quello degli
+      <a href="https://github.com/davidoffdado/sovraffollamento-carcerario">script</a>
+      sia quello del <a href="https://github.com/davidoffdado/progetto-carceri">sito</a>.
       <br />
       Se pensi ci possano essere degli errori o vuoi utilizzare i dati (sei libero di farlo, ma mi farebbe piacere saperlo) puoi contattarmi qui
       <a href="mailto:davidruffini98@gmail.com">davidruffini98@gmail.com</a>
-      o nei canali social presenti in fondo alla pagina.
+      o nei canali social indicati nella sezione Contatti.
       <br />
       Prima dell'utilizzo dei dati, l'invito è a effettuare una verifica sulla coerenza tra quello che c'è sulla dashboard e ciò che è presente nelle fonti dei dati viste sopra.
     </p>
-    <p>Questo sito è stato realizzato in HTML, CSS, JavaScript, Svelte e D3.</p>
+    <p>Questo sito è stato realizzato in HTML, CSS, JavaScript, Svelte (SvelteKit) e D3.</p>
   </section>
 </main>

@@ -23,6 +23,7 @@ export const slug = (nome) =>
 // link per scaricare i dati (stessi della pagina originale, piu' lo storico per istituto)
 export const DOWNLOAD = {
   storicoIstituti: STORICO_ISTITUTI,
+  morti: gviz(SHEET_ISTITUTI, "Morti"),
   istituti: `https://docs.google.com/spreadsheets/d/${SHEET_ISTITUTI}/export?format=csv&gid=1943472560`,
   regioni: `https://docs.google.com/spreadsheets/d/${SHEET_ISTITUTI}/export?format=csv&gid=1408753092`,
   storico: `https://docs.google.com/spreadsheets/d/${SHEET_STORICO}/export?format=csv&gid=594867098`,
